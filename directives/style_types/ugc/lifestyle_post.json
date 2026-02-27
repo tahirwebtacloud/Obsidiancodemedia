@@ -1,0 +1,58 @@
+{
+  "label": "Lifestyle Post",
+  "prompts": [
+    {
+      "id": "lp_1",
+      "best_for": "Hustle culture, work-life balance, productivity tips, side-hustle stories, laptop lifestyle content",
+      "prompt": "First-person POV photography, slightly wide-angle shot of a gold MacBook Air sitting on a clean white table in a dimly lit, blurred food court background. To the left is a pink swirl frozen yogurt cup with a strawberry and wooden spoon. The laptop screen displays a mountain landscape wallpaper with a clock reading 12:31. The laptop keyboard area is decorated with stickers: 'Introvert', a $100 bill, and 'BILLIONAIRE'. Cinematic lighting with ambient neon background lights. Overlaid text elements: script text {{TEXT_PLACEHOLDER_1}} above large bold yellow text {{TEXT_PLACEHOLDER_2}}, followed by script text {{TEXT_PLACEHOLDER_3}} and highlighted text {{TEXT_PLACEHOLDER_4}}. Bottom right contains a floating UI card {{TEXT_PLACEHOLDER_5}}.",
+      "layout": "Central composition focusing on the laptop, framed by typographic elements at the top and a UI element at the bottom right. The arrangement mimics a flat lay or POV social media snapshot.",
+      "visual_hierarchy": "1. Large Yellow Text (Primary Hook) 2. Laptop Screen & Stickers (Subject) 3. Notification Card (Punchline) 4. Ice Cream (Context).",
+      "focal_point": "The laptop screen and the prominent yellow typography above it.",
+      "white_space": "The white table provides negative space in the lower half, preventing the clutter of stickers and text from overwhelming the viewer.",
+      "balance": "Asymmetrical balance. The visual weight of the ice cream on the left is counterbalanced by the bright white notification card on the right.",
+      "positioning": "Top text centered horizontally with ~50px top margin. Laptop centered. Notification card angled slightly, positioned ~40px from right edge.",
+      "shadows": "Notification card: Soft drop shadow, ~15px blur, 10px Y-offset, 20% opacity black. Laptop creates a soft contact shadow on the table.",
+      "gradients": "Laptop skin features a warm gradient from burnt orange (#D98C45) to metallic gold. Background bokeh lights create natural gradients.",
+      "borders": "Notification card has a subtle 1px light grey border with ~12px corner radius.",
+      "textures": "Smooth matte finish on the laptop skin vs. glossy reflection on the screen. Paper texture on the napkin.",
+      "heading": "Integral CF or Impact - Extra Bold / Condensed - Very Large (~120pt)",
+      "accent": "Brittany Signature or similar script - Handwritten - Medium (~40pt)",
+      "body": "Google Sans / Roboto - Regular - Small (~16pt)"
+    },
+    {
+      "id": "lp_2",
+      "best_for": "News reactions, industry commentary, trend analysis, 'what headlines miss', media-savvy takes",
+      "prompt": "A high-quality digital collage advertisement featuring a professional woman sitting in a sleek black Eames-style office chair. She is holding a large, open broadsheet newspaper directly in front of her face, obscuring her identity. She wears a sleeveless black professional outfit. The subject (woman and chair) has a distinct, thick white outline (sticker effect) separating her from the background. The background is a textured, light gray concrete or grunge wall. Lighting is soft, diffused studio lighting casting a subtle drop shadow behind the cutout subject. The newspaper headline prominently features large bold serif typography inside a layout grid. A bright yellow rectangular speech bubble with rounded corners pops out from the newspaper. To the right, distressed stencil-style typography floats in mid-air. Key visual elements include {{NEWSPAPER_HEADLINE}}, {{SPEECH_BUBBLE_TEXT}}, and {{GRUNGE_TEXT_CALLOUT}}.",
+      "layout": "Centralized composition anchoring the subject in the middle-left, with text elements balancing the visual weight on the right. Utilizes a Z-pattern reading flow starting from the newspaper headline, moving to the speech bubble, then the grunge text, and landing on the footer.",
+      "visual_hierarchy": "1. The bold newspaper headline (Primary). 2. The yellow speech bubble (Secondary). 3. The grunge text callout (Tertiary). 4. The subject/chair. 5. Brand logo and footer details.",
+      "focal_point": "The newspaper headline, specifically any highlighted keyword in yellow background.",
+      "white_space": "Negative space is primarily the textured gray background. It is used effectively to prevent the busy text elements from feeling cluttered, though the right side feels slightly text-heavy compared to the left.",
+      "balance": "Asymmetrical balance. The visual weight of the dark chair and newspaper on the left is counterbalanced by the bright yellow speech bubble and bold black text on the right.",
+      "positioning": "Subject is vertically centered, horizontally offset slightly to the left. Footer bar is anchored at 0px bottom margin. Logo top-right with approx 40px margin.",
+      "shadows": "Soft drop shadow behind the main subject cutout: approx 15px blur, 5px offset, 30% opacity black. Subtle drop shadow on the speech bubble.",
+      "gradients": "None prominent; flat colors and textures used.",
+      "borders": "Prominent ~8px solid white stroke outlining the woman and chair creating a sticker or paper cutout effect. Thin black borders on the newspaper columns.",
+      "textures": "Subtle grunge/concrete texture overlay on the light gray background. Paper texture implied on the newspaper.",
+      "heading": "Playfair Display or Times New Roman - Bold / Condensed - Large (approx 72pt)",
+      "accent": "Capture It or Stencil Std - Grunge / Distressed - Medium-Large",
+      "body": "Merriweather or Georgia - Regular / Italic - Small"
+    },
+    {
+      "id": "lp_3",
+      "best_for": "Personal growth journeys, learning moments, self-improvement, authentic lifestyle, candid storytelling",
+      "prompt": "Candid medium-full shot from behind of a young Black woman with long red braids browsing a bookstore aisle. She wears a patterned headscarf, green fitted tee, baggy light-wash jeans with a chain belt, and a yellow crochet shoulder bag. She reaches for a book on a dark wooden shelf. Flash photography aesthetic, 35mm film grain texture, dim ambient store lighting with harsh flash foreground. Y2K/Gen-Z aesthetic. Overlaid with {{TEXT_PLACEHOLDER_1}} in large serif font at top, arrow pointing to {{TEXT_PLACEHOLDER_2}} at bottom right.",
+      "layout": "Z-pattern layout. Top text anchors left/center, eye moves through subject in center, lands on bottom right text.",
+      "visual_hierarchy": "1. Large yellow headline text. 2. Subject (woman). 3. Secondary text. 4. Small context text.",
+      "focal_point": "The upper text block and the subject's head/scarf area illuminated by flash.",
+      "white_space": "Text occupies negative space over bookshelves. Minimal true whitespace due to busy background, reliant on contrast.",
+      "balance": "Asymmetrical. Heavy text block top-left balances the text block bottom-right. Subject centers the composition.",
+      "positioning": "Text overlays directly on image. Top text padded ~50px from edges. Arrow vector connects two text masses.",
+      "shadows": "Hard flash shadows behind subject. Text has subtle drop shadow: black, 40% opacity, 2px offset for legibility.",
+      "gradients": "None on elements. Natural lighting gradient from flash falloff.",
+      "borders": "None.",
+      "textures": "Heavy noise/film grain overlay applied to entire image including text for cohesion.",
+      "heading": "Editorial New / Caslon Italic - Italic Serif - Large",
+      "body": "Editorial New / Caslon Regular - Regular Serif - Small"
+    }
+  ]
+}

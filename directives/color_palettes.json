@@ -1,0 +1,124 @@
+{
+  "palettes": [
+    {
+      "id": "brand",
+      "name": "Obsidian Brand",
+      "description": "Official Obsidian Logic AI brand identity - Obsidian Black + Signal Yellow from design-tokens.json",
+      "primary": "#0E0E0E",
+      "secondary": "#F9C74F",
+      "accent": "#FCF0D5",
+      "neutral": "#F9F9F9",
+      "dark": "#0E0E0E",
+      "light": "#FFFFFF",
+      "color_theory": "Obsidian Black (#0E0E0E) as the premium dark foundation paired with Signal Yellow (#F9C74F) for high-contrast authority. The warm gold accent creates premium positioning without corporate coldness. Light gold (#FCF0D5) softens secondary elements.",
+      "emotional_context": "Premium, authoritative, high-ticket, tech-forward, trustworthy",
+      "best_for": "Brand-consistent posts, authority content, thought leadership, data-heavy infographics, company announcements",
+      "usage_guidelines": {
+        "primary_use": "Backgrounds, headline foundations, dark containers, primary text on light surfaces",
+        "secondary_use": "Key data points, CTAs, accent highlights, important metrics, section headers",
+        "accent_use": "Subtle warm highlights, secondary text on dark backgrounds, soft containers",
+        "neutral_use": "Light backgrounds, card surfaces, breathing room, text containers"
+      }
+    },
+    {
+      "id": "executive",
+      "name": "Executive Navy",
+      "description": "Deep navy + crisp white + gold accent - the classic LinkedIn authority palette",
+      "primary": "#1B2A4A",
+      "secondary": "#FFFFFF",
+      "accent": "#D4A853",
+      "neutral": "#F0F2F5",
+      "dark": "#0F1A2E",
+      "light": "#FFFFFF",
+      "color_theory": "Navy conveys competence and trust on LinkedIn where blue is the native color. Crisp white text on navy creates maximum readability in the feed. Gold accent adds premium differentiation without competing with LinkedIn's own blue UI.",
+      "emotional_context": "Authoritative, trustworthy, executive-level, polished, credible",
+      "best_for": "Thought leadership, C-suite content, professional frameworks, consulting insights, industry analysis",
+      "usage_guidelines": {
+        "primary_use": "Backgrounds, headline containers, primary text blocks, dark sections",
+        "secondary_use": "Headlines on dark backgrounds, body text on light backgrounds, structural lines",
+        "accent_use": "Key metrics, CTAs, data highlights, section dividers, important callouts",
+        "neutral_use": "Light backgrounds, card surfaces, subtle containers, breathing room"
+      }
+    },
+    {
+      "id": "coral",
+      "name": "Bold Coral",
+      "description": "Warm coral + dark charcoal - scroll-stopping warmth that stands out in the LinkedIn feed",
+      "primary": "#E8634A",
+      "secondary": "#2D2D2D",
+      "accent": "#F4A261",
+      "neutral": "#FFF5F0",
+      "dark": "#1A1A1A",
+      "light": "#FFFFFF",
+      "color_theory": "Coral is one of the highest-engagement colors on LinkedIn because it contrasts sharply with the platform's blue/white/grey interface. The warm undertone creates approachability while the charcoal grounds it in professionalism. Amber accent bridges the warmth.",
+      "emotional_context": "Engaging, warm, approachable, energetic, human, scroll-stopping",
+      "best_for": "Storytelling posts, engagement hooks, personal narratives, hot takes, community content, promotional CTAs",
+      "usage_guidelines": {
+        "primary_use": "Headlines, key callouts, CTAs, visual anchors, attention-grabbing elements",
+        "secondary_use": "Body text, structural elements, supporting containers, dark backgrounds",
+        "accent_use": "Secondary highlights, warm icons, supporting data points, decorative elements",
+        "neutral_use": "Light warm backgrounds, card surfaces, breathing room, text containers"
+      }
+    },
+    {
+      "id": "emerald",
+      "name": "Forest & Cream",
+      "description": "Deep emerald + warm cream - premium, distinctive, rarely seen on LinkedIn",
+      "primary": "#1A5632",
+      "secondary": "#F5EDE0",
+      "accent": "#C8A96E",
+      "neutral": "#FAF7F2",
+      "dark": "#0E3B22",
+      "light": "#FFFFFF",
+      "color_theory": "Deep green is one of the most underused colors on LinkedIn, making it instantly distinctive in the feed. It signals growth, stability, and wealth. Paired with warm cream it feels premium and editorial. Gold accent adds a luxury touch.",
+      "emotional_context": "Premium, distinctive, growth-oriented, stable, editorial, sophisticated",
+      "best_for": "Educational frameworks, growth metrics, ROI content, case studies, premium positioning, evergreen advice",
+      "usage_guidelines": {
+        "primary_use": "Backgrounds, headline containers, primary structural elements, dark sections",
+        "secondary_use": "Text on dark backgrounds, light containers, body text areas, cream surfaces",
+        "accent_use": "Key metrics, CTAs, important highlights, premium data callouts, icons",
+        "neutral_use": "Page backgrounds, subtle containers, text breathing room, card surfaces"
+      }
+    },
+    {
+      "id": "slate",
+      "name": "Clean Slate",
+      "description": "Cool grey-blue + white + electric blue accent - modern SaaS aesthetic for tech content",
+      "primary": "#334155",
+      "secondary": "#FFFFFF",
+      "accent": "#3B82F6",
+      "neutral": "#F1F5F9",
+      "dark": "#1E293B",
+      "light": "#FFFFFF",
+      "color_theory": "Slate grey reads as modern and tech-forward without the overused navy. The cool blue accent aligns with LinkedIn's native color language for trust, while being distinct enough to stand out. Clean white creates maximum readability.",
+      "emotional_context": "Modern, clean, tech-savvy, data-driven, focused, professional",
+      "best_for": "Tech content, data visualizations, SaaS messaging, process breakdowns, developer-adjacent content, product announcements",
+      "usage_guidelines": {
+        "primary_use": "Backgrounds, text blocks, dark containers, headline foundations",
+        "secondary_use": "Headlines on dark backgrounds, body text on light backgrounds, structural whites",
+        "accent_use": "Interactive elements, CTAs, key data highlights, links, important metrics",
+        "neutral_use": "Light backgrounds, card surfaces, subtle section dividers, breathing room"
+      }
+    },
+    {
+      "id": "midnight",
+      "name": "Midnight Pop",
+      "description": "Near-black + vibrant accent colors - high-contrast dark mode that dominates the feed",
+      "primary": "#0F0F0F",
+      "secondary": "#EDEDED",
+      "accent": "#7C3AED",
+      "neutral": "#1C1C1C",
+      "dark": "#0A0A0A",
+      "light": "#F5F5F5",
+      "color_theory": "Dark backgrounds dominate LinkedIn feeds because most content is white. A near-black canvas makes any content immediately visible. Vibrant purple accent is rare on LinkedIn and creates instant visual distinction. Light grey text avoids harsh pure-white glare.",
+      "emotional_context": "Bold, disruptive, modern, high-contrast, attention-commanding, innovative",
+      "best_for": "Viral hooks, contrarian takes, bold statements, trend commentary, provocative content, data reveals",
+      "usage_guidelines": {
+        "primary_use": "Full backgrounds, dark containers, primary canvas, structural foundation",
+        "secondary_use": "Body text, headlines on dark backgrounds, structural lines, readable text",
+        "accent_use": "Key highlights, CTAs, data callouts, visual anchors, important metrics, icons",
+        "neutral_use": "Subtle containers within dark backgrounds, card separation, secondary sections"
+      }
+    }
+  ]
+}

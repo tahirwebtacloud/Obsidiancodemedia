@@ -1,0 +1,57 @@
+{
+  "label": "Informative UGCs",
+  "prompts": [
+    {
+      "id": "iu_1",
+      "best_for": "Bold editorial declarations, authoritative single-point insights, magazine-style authority statements",
+      "prompt": "Editorial style social media graphic, minimalist poster design, textured off-white paper background, bold deep red sans-serif typography on the left {{TEXT_PLACEHOLDER_1}}, right-aligned photographic cutout of a person in a vintage brown leather jacket holding an open magazine, distinct magazine aesthetic, high contrast, studio lighting, grain overlay, top border line with small caption {{TEXT_PLACEHOLDER_2}} and serif logo stamp {{TEXT_PLACEHOLDER_3}}.",
+      "layout": "Asymmetrical two-column grid. Left column dominates with heavy typography (approx 60% width), right column features photographic element (approx 40% width). Top header bar acts as a container.",
+      "visual_hierarchy": "1. Main Headline (Red, Large Scale) -> 2. Photographic Cutout (Human Element) -> 3. Body Text (Red, Medium Scale) -> 4. Top Branding Bar.",
+      "focal_point": "The large red headline text.",
+      "white_space": "Generous usage of negative space in the top left and around the text block, creating a breathable, high-end editorial feel.",
+      "balance": "Asymmetrical balance achieved by counterweighing the visual weight of the bold, large typography on the left with the complex texture and dark values of the image cutout on the right.",
+      "positioning": "Left text alignment with ragged right. Main headline has tight leading (approx 90%). Top separator line is 1px stroke weight, full width.",
+      "shadows": "Subtle, hard-edge drop shadow or outline effect may be present on the person cutout to separate from background, though minimal.",
+      "gradients": "None. Flat colors with texture overlay.",
+      "borders": "None on main elements. 1px black horizontal divider line at top (approx 5% from top edge).",
+      "textures": "Subtle paper grain/noise texture applied to the off-white background to simulate a printed page.",
+      "heading": "Helvetica Neue / Inter - Bold / Heavy - Very Large (~120pt)",
+      "body": "Lato / Roboto - Regular - Medium (~24pt)",
+      "accent": "Didot / Bodoni - Serif - Small"
+    },
+    {
+      "id": "iu_2",
+      "best_for": "Mental health topics, stress/burnout content, hidden struggles, emotional vulnerability, overwhelm themes",
+      "prompt": "Studio portrait of a person wearing a blue baseball cap and black long-sleeve shirt, hands covering face in a gesture of stress or contemplation, face completely obscured by a solid royal blue organic blob shape containing centered white text {{TEXT_PLACEHOLDER_1}}, background is a light gray textured paper, brutalist graphic design style. Large, tall, condensed blue typography {{TEXT_PLACEHOLDER_2}} layered behind the head but in front of background. A black grunge tape strip with white text {{TEXT_PLACEHOLDER_3}} angled across the top left. Thin, wavy black doodle lines emanating from the shoulders to the edges. High contrast, magazine cover aesthetic, poster design.",
+      "layout": "Central composition with a strong vertical axis. The subject anchors the bottom, while the typography forms an inverted pyramid structure at the top.",
+      "visual_hierarchy": "1. The massive blue typography and the face-obscuring blue blob. 2. The provocative black tape text. 3. The explanatory text on the face mask. 4. The subject's hands and cap.",
+      "focal_point": "The blue blob covering the face, which acts as a container for the secondary hook.",
+      "white_space": "Ample negative space in the upper corners and background texture prevents the bold elements from feeling claustrophobic.",
+      "balance": "Symmetrical subject placement balanced by slightly asymmetrical typography (angled tape) and organic wavy lines.",
+      "positioning": "Subject centered horizontally. Top padding for tags approx 60px. Large typography text spans ~90% of width.",
+      "shadows": "Hard drop shadow on the black tape element to simulate a physical sticker. Soft, diffused ambient shading on the person's hands.",
+      "gradients": "Flat colors primarily; slight lighting gradient on the blue cap.",
+      "borders": "No borders on main elements. 2px black wavy vector lines framing the subject.",
+      "textures": "Subtle film grain/noise on the light gray background.",
+      "heading": "Dharma Gothic / Impact / Akzidenz Grotesk Condensed - Condensed Bold - Extra Large (~150pt)",
+      "body": "Helvetica Now / Inter - Regular/Medium - Medium (~24pt)"
+    },
+    {
+      "id": "iu_3",
+      "best_for": "Creative blocks, thinking frameworks, analytical tips, intellectual concepts, strategy breakdowns",
+      "prompt": "A high-contrast mixed media collage graphic in the style of a digital zine. Center subject is a grayscale cutout photo of a person in a thoughtful pose, wearing a turtleneck, arms crossed, hand on chin. The person's face is completely obscured by a solid black organic shape, creating a void. The subject has a rough, vibrant electric blue outline. Background is stark white with a black halftone dot pattern at the bottom corners. Surrounding the head are thin blue connector lines pointing to text blocks. Top contains bold, extended sans-serif typography. Minimalist, edgy, modern graphic design style. {{TEXT_PLACEHOLDER_1}} {{TEXT_PLACEHOLDER_2}} {{TEXT_PLACEHOLDER_3}}.",
+      "layout": "Centralized symmetrical composition. The subject anchors the center, with a headline stack at the top and informational points distributed radially around the head using a hub-and-spoke model.",
+      "visual_hierarchy": "1. The Headline (due to size and contrast blocks) 2. The Faceless Subject (due to the central position and the black void anomaly) 3. The Blue Accents (guiding the eye) 4. The Body Text Tips.",
+      "focal_point": "The blacked-out face of the subject, which creates a curiosity gap and symbolizes the block or the mind.",
+      "white_space": "Generous use of negative space around the peripheral text blocks ensures legibility, though the center is dense.",
+      "balance": "Symmetrical balance. The text blocks on left and right counterbalance each other, and the headline spans the full width.",
+      "positioning": "Center alignment for the main subject. Headline text is center-aligned. Body text is aligned towards the subject (left text right-aligned, right text left-aligned).",
+      "shadows": "No soft shadows. Hard-edge drop shadows are implied by the black background blocks behind the white text in the headline.",
+      "gradients": "None. Flat colors only.",
+      "borders": "A rough, hand-drawn style blue stroke (~3-5px width) surrounds the subject cutout.",
+      "textures": "Halftone dot pattern (Ben-Day dots) located at the bottom left and right corners to ground the subject, fading from black to transparent.",
+      "heading": "Eurostile Extended Bold or Integral CF - Bold, All Caps, Extended - Very Large (approx 80pt)",
+      "body": "Montserrat or Gotham - Regular/Medium - Small (approx 14pt)"
+    }
+  ]
+}

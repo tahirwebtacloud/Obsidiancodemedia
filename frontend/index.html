@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Obsidian Logic - Content Automation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+    <!-- Background Elements -->
+    <div class="background-glow"></div>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: var(--bg-primary, #0E0E0E); justify-content: center; align-items: center; align-content: center;">
+        <div class="form">
+            <div class="flex-column" style="text-align: center;">
+                <h2 style="color: var(--brand-primary, #F9C74F); margin-bottom: 20px; font-weight: 600; font-family: 'Outfit', sans-serif;">Obsidian Logic</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 30px; font-family: 'Inter', sans-serif;">Authenticate to access your workspace.</p>
+            </div>
+            
+            <button id="firebase-login-btn" class="button-submit">
+                <div class="flex-row" style="justify-content: center; gap: 12px; align-items: center;">
+                    <span style="display: flex; align-items: center;">
+                        <svg viewBox="0 0 24 24" style="width: 24px; height: 24px;" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                            <path d="M1 1h22v22H1z" fill="none"/>
+                        </svg>
+                    </span>
+                    <span style="font-size: 16px;">Sign in with Google</span>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main App Content (hidden until signed in) -->
+    <div id="main-app" class="app-layout" style="display: none;">
+        <!-- LEFT SIDEBAR (30%) - Controls -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <div class="logo" style="margin-bottom: 0;">
+                    <img src="logo.png" alt="Obsidian Logic Logo" class="brand-logo">
+                    <div class="logo-text" style="display: flex; flex-direction: column; gap: 2px;">
+                        <h1 style="margin: 0;">Obsidian Logic</h1>
+                        <p class="subtitle" style="margin: 0; display: flex; justify-content: space-between; align-items: center;">
+                            Content Automation
+                            <button id="firebase-logout-btn" style="display: none; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; align-items: center; gap: 4px; transition: all 0.2s;" onmouseover="this.style.color='var(--brand-primary)'; this.style.borderColor='var(--brand-primary)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.borderColor='rgba(255,255,255,0.1)'">
+                                <i data-lucide="log-out" style="width: 14px; height: 14px;"></i> Logout
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Navigation: Mode Dropdown + Dashboard Icon -->
+            <nav class="tab-nav" style="display: flex; align-items: center; gap: 8px; padding: 0 0 16px; margin-bottom: 12px; border-bottom: none;">
+
+                <!-- Mode Dropdown -->
+                <div class="mode-dropdown-wrapper" style="position: relative; flex: 1; min-width: 0;">
+                    <button id="mode-dropdown-btn" style="
+                        width: 100%;
+                        display: flex; align-items: center; justify-content: space-between;
+                        background: rgba(255,255,255,0.05);
+                        border: 1px solid rgba(255,255,255,0.12);
+                        color: #ffffff;
+                        padding: 8px 16px;
+                        border-radius: 8px;
+                        font-size: 0.9rem; font-weight: 500;
+                        font-family: 'Outfit', sans-serif;
+                        cursor: pointer;
+                        transition: border-color 0.2s, background 0.2s;
+                        gap: 8px;
+                    "
+                    onmouseover="this.style.borderColor='rgba(249,199,79,0.4)'"
+                    onmouseout="this.style.borderColor='rgba(255,255,255,0.12)'">
+                        <span id="mode-dropdown-label" style="display:flex;align-items:center;gap:8px;">
+                            <i data-lucide="sparkles" style="width:16px;height:16px;color:var(--brand-primary);flex-shrink:0;"></i>
+                            Studio
+                        </span>
+                        <i data-lucide="chevrons-up-down" style="width:14px;height:14px;color:var(--text-secondary);flex-shrink:0;"></i>
+                    </button>
+
+                    <!-- Dropdown Panel -->
+                    <div id="mode-dropdown-panel" style="
+                        display: none;
+                        position: absolute;
+                        top: calc(100% + 6px);
+                        left: 0; right: 0;
+                        min-width: 260px;
+                        background: #1a1a1a;
+                        border: 1px solid rgba(255,255,255,0.12);
+                        border-radius: 10px;
+                        overflow: hidden;
+                        z-index: 9999;
+                        box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+                    ">
+                        <!-- Studio Option -->
+                        <button class="mode-option active-option" data-tab="generate" style="
+                            width: 100%; text-align: left;
+                            display: flex; align-items: center; gap: 12px;
+                            padding: 12px 14px;
+                            background: transparent;
+                            border: none;
+                            cursor: pointer;
+                            transition: background 0.15s;
+                            border-bottom: 1px solid rgba(255,255,255,0.06);
+                        "
+                        onmouseover="this.style.background='rgba(255,255,255,0.06)'"
+                        onmouseout="this.style.background='transparent'">
+                            <span style="width:36px;height:36px;border-radius:8px;background:rgba(249,199,79,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i data-lucide="sparkles" style="width:18px;height:18px;color:var(--brand-primary);"></i>
+                            </span>
+                            <span style="min-width:0;">
+                                <span style="display:block;font-size:0.9rem;font-weight:700;color:#ffffff;font-family:'Outfit',sans-serif;white-space:nowrap;letter-spacing:0.01em;">Studio</span>
+                                <span style="display:block;font-size:0.73rem;color:#9a9082;margin-top:3px;white-space:nowrap;">Create and generate LinkedIn content</span>
+                            </span>
+                        </button>
+
+                        <!-- Win Lab Option -->
+                        <button class="mode-option" data-tab="competitor" style="
+                            width: 100%; text-align: left;
+                            display: flex; align-items: center; gap: 12px;
+                            padding: 12px 14px;
+                            background: transparent;
+                            border: none;
+                            cursor: pointer;
+                            transition: background 0.15s;
+                        "
+                        onmouseover="this.style.background='rgba(255,255,255,0.06)'"
+                        onmouseout="this.style.background='transparent'">
+                            <span style="width:36px;height:36px;border-radius:8px;background:rgba(249,199,79,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i data-lucide="trophy" style="width:18px;height:18px;color:var(--brand-primary);"></i>
+                            </span>
+                            <span style="min-width:0;">
+                                <span style="display:block;font-size:0.9rem;font-weight:700;color:#ffffff;font-family:'Outfit',sans-serif;white-space:nowrap;letter-spacing:0.01em;">Win Lab</span>
+                                <span style="display:block;font-size:0.73rem;color:#9a9082;margin-top:3px;white-space:nowrap;">Research viral posts and competitors</span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Icon-only Button -->
+                <button class="tab-btn" data-tab="dashboard" id="dashboard-icon-btn" title="Dashboard" style="
+                    background: transparent;
+                    border: none;
+                    color: #ffffff;
+                    padding: 0;
+                    cursor: pointer;
+                    display: flex; align-items: center; justify-content: center;
+                    width: 36px; height: 36px; flex-shrink: 0; line-height: 0;
+                    transition: transform 0.2s, opacity 0.2s;
+                "
+                onmouseover="this.style.transform='scale(1.1)'; this.style.opacity='0.8'"
+                onmouseout="this.style.transform='scale(1)'; this.style.opacity='1'">
+                    <i data-lucide="layout-dashboard" style="display:block;width:36px;height:36px;color:#ffffff;line-height:0;flex-shrink:0;"></i>
+                </button>
+            </nav>
+
+            <!-- INPUT FORMS (Scrollable) -->
+            <div class="sidebar-content">
+                <!-- Dashboard Tab -->
+                <div id="tab-dashboard" class="tab-pane">
+                    <div class="sub-tab-nav">
+                        <button class="sub-tab-btn active" data-sub-tab="surveillance">
+                            <span class="sub-tab-icon"><i data-lucide="activity"></i></span>
+                            <span class="sub-tab-title">Surveillance</span>
+                        </button>
+                    </div>
+                    <div class="sub-sidebar-content">
+                        <!-- Surveillance Sub-tab -->
+                        <div id="sub-tab-surveillance" class="sub-tab-pane active" style="gap: 20px; display: flex; flex-direction: column;">
+                            
+                            <!-- Profile Tracker Settings -->
+                            <div class="form-group" style="margin-top: 0;">
+                                <label style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600;">
+                                        <i data-lucide="target" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                                        Target Profile
+                                    </span>
+                                    <span id="profile-save-status" style="font-size: 0.75rem; color: var(--success, #22c55e); opacity: 0; transition: opacity 0.3s; font-weight: 500;">Saved ✓</span>
+                                </label>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="url" id="tracked-profile-url" class="dark-input glass-input" placeholder="https://linkedin.com/in/..." style="flex: 1;">
+                                    <button type="button" id="save-profile-btn" class="action-btn success-btn" style="padding: 8px 16px; min-width: 80px;" disabled>Save</button>
+                                </div>
+                                <p style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 6px;">URL of the LinkedIn profile to scrape during surveillance runs.</p>
+                            </div>
+
+                            <!-- Time Range Selector -->
+                            <div class="form-group" style="margin-top: 0;">
+                                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-primary); font-weight: 600;">
+                                    <i data-lucide="calendar-range" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                                    Time Range
+                                </label>
+                                <div class="select-wrapper">
+                                    <select id="surveillance-time-range" class="dark-input glass-input" style="width: 100%;">
+                                        <option value="7">Last 7 Days</option>
+                                        <option value="14">Last 14 Days</option>
+                                        <option value="30" selected>Last 30 Days</option>
+                                        <option value="60">Last 60 Days</option>
+                                        <option value="90">Last 90 Days</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="empty-state" style="padding: 24px 16px; margin: 0; min-height: auto; border: 1px solid var(--border);">
+                                <div class="empty-icon" style="width: 40px; height: 40px; margin-bottom: 12px; color: var(--brand-primary);" aria-hidden="true"><i data-lucide="activity"></i></div>
+                                <h3 style="font-size: 1.1rem; margin-bottom: 6px; text-wrap: balance; font-weight: 600;">Surveillance Active</h3>
+                                <p id="surveillance-active-desc" style="font-size: 0.85rem; color: var(--text-secondary); text-wrap: pretty; line-height: 1.4;">Monitoring your LinkedIn profile performance over the last 30 days.</p>
+                            </div>
+                            
+                            <button type="button" id="refresh-surveillance-btn" class="primary-btn" aria-label="Refresh Surveillance Data" style="width: 100%; transition: transform 0.2s ease-out, opacity 0.2s ease-out;">
+                                <i data-lucide="refresh-cw" class="btn-icon" aria-hidden="true"></i> Refresh Data
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generate Tab -->
+                <div id="tab-generate" class="tab-pane active">
+                    <form id="generator-form">
+                        <input type="hidden" name="action" value="develop_post">
+
+                        <div class="form-section" style="margin-top: 0;">
+
+                            <div class="form-group">
+                                <label>Content Source</label>
+                                <div class="select-wrapper">
+                                    <select name="source" id="source">
+                                        <option value="topic" selected>Direct Topic</option>
+                                        <option value="news">News / Article</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Format</label>
+                                    <div class="select-wrapper">
+                                        <select name="type" id="type">
+                                            <option value="text">Text Basic</option>
+                                            <option value="article">Article</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Purpose</label>
+                                    <div class="select-wrapper">
+                                        <select name="purpose" id="purpose">
+                                            <option value="educational">Breakdown</option>
+                                            <option value="storytelling">Announcement</option>
+                                            <option value="authority">Money Math</option>
+                                            <option value="promotional">ID-Challenge</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Aspect</label>
+                                    <div class="select-wrapper">
+                                        <select name="visual_aspect" id="visual-aspect">
+                                            <option value="none">None</option>
+                                            <option value="image">Image</option>
+                                            <option value="video">Video</option>
+                                            <option value="carousel">Carousel</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group" id="visual-style-group" style="display: none;">
+                                    <label>Style</label>
+                                    <div class="select-wrapper">
+                                        <select name="visual_style" id="visual-style"></select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row" id="style-type-group" style="display: none;">
+                                <div class="form-group">
+                                    <label>Type</label>
+                                    <div class="select-wrapper">
+                                        <select name="style_type" id="style-type"></select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row" id="aspect-ratio-group" style="display: none;">
+                                <div class="form-group">
+                                    <label>Aspect Ratio</label>
+                                    <div class="select-wrapper">
+                                        <select name="aspect_ratio" id="aspect-ratio">
+                                            <option value="1:1">1:1 (Square)</option>
+                                            <option value="4:5">4:5 (Portrait)</option>
+                                            <option value="16:9">16:9 (Landscape)</option>
+                                            <option value="9:16">9:16 (Vertical)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-group" id="color-palette-group" style="display: none;">
+                                <label>Color Palette</label>
+                                <div class="select-wrapper">
+                                    <select name="color_palette" id="color-palette">
+                                        <option value="brand">Obsidian Brand</option>
+                                        <option value="executive">Executive Navy</option>
+                                        <option value="coral">Bold Coral</option>
+                                        <option value="emerald">Forest &amp; Cream</option>
+                                        <option value="slate">Clean Slate</option>
+                                        <option value="midnight">Midnight Pop</option>
+                                    </select>
+                                </div>
+                                <div class="palette-preview" id="palette-preview"></div>
+                            </div>
+
+                            <div class="form-group" id="reference-image-group" style="display: none;">
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                    <label class="switch">
+                                        <input type="checkbox" id="reference-image-toggle">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span style="font-size: 0.75rem; font-weight: 700; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; letter-spacing: 0.05em;">Reference Image</span>
+                                </div>
+                                <div id="reference-image-upload" class="ref-upload-zone" style="display: none;">
+                                    <input type="file" id="reference-image-file" accept="image/*" class="file-input-hidden">
+                                    <button type="button" id="reference-image-btn" class="upload-trigger-btn">
+                                        <i data-lucide="upload" style="width:14px;height:14px;"></i> Choose Image
+                                    </button>
+                                    <span id="reference-image-name" class="ref-file-name"></span>
+                                </div>
+                            </div>
+
+                            <div class="form-group hidden-input" id="url-group">
+                                <label>Source URL</label>
+                                <input type="url" name="url" id="url" placeholder="https://..." class="dark-input">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Topic / Theme</label>
+                                <input type="text" name="topic" id="topic" placeholder="e.g. AI Trends 2026"
+                                    class="dark-input" required>
+                            </div>
+
+                            <button type="submit" id="submit-btn" class="primary-btn">
+                                <span class="btn-content">Generate</span>
+                                <div class="loader">
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                </div>
+                                <i data-lucide="arrow-right" class="btn-icon"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Competitor Hub Tab -->
+                <div id="tab-competitor" class="tab-pane">
+                    <div class="sub-tab-nav">
+                        <button class="sub-tab-btn active" data-sub-tab="viral">
+                            <span class="sub-tab-icon"><i data-lucide="trending-up"></i></span>
+                            <span class="sub-tab-title">Viral</span>
+                        </button>
+                        <button class="sub-tab-btn" data-sub-tab="comp">
+                            <span class="sub-tab-icon"><i data-lucide="link-2"></i></span>
+                            <span class="sub-tab-title">Competitor</span>
+                        </button>
+                        <button class="sub-tab-btn" data-sub-tab="youtube">
+                            <span class="sub-tab-icon"><i data-lucide="youtube"></i></span>
+                            <span class="sub-tab-title">YouTube</span>
+                        </button>
+                    </div>
+
+                    <div class="sub-sidebar-content">
+                        <!-- Viral Research Sub-tab -->
+                        <div id="sub-tab-viral" class="sub-tab-pane active">
+                            <form id="viral-research-form">
+                                <div class="form-group">
+                                    <label>Research Topic</label>
+                                    <input type="text" name="topic" placeholder="e.g. AI in Finance" class="dark-input"
+                                        required>
+                                </div>
+                                <button type="submit" id="viral-search-btn" class="primary-btn">
+                                    <i data-lucide="search" class="btn-icon"></i> Search LinkedIn
+                                </button>
+                            </form>
+                            <div id="viral-research-results" class="research-results-display"></div>
+                        </div>
+
+                        <!-- Competitor Scraper Sub-tab -->
+                        <div id="sub-tab-comp" class="sub-tab-pane">
+                            <form id="competitor-research-form">
+                                <div class="form-group">
+                                    <label>LinkedIn Profile URLs</label>
+                                    <div id="comp-url-list" class="dynamic-input-list">
+                                        <div class="input-row">
+                                            <input type="url" name="urls[]" placeholder="https://linkedin.com/in/..."
+                                                class="dark-input" required>
+                                            <button type="button" class="add-btn" id="add-comp-url">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" id="hunt-competitors-btn" class="primary-btn">
+                                    <i data-lucide="filter" class="btn-icon"></i> Hunt Competitors
+                                </button>
+                            </form>
+                            <div id="competitor-research-results" class="research-results-display"></div>
+                        </div>
+
+                        <!-- YouTube Sub-tab -->
+                        <div id="sub-tab-youtube" class="sub-tab-pane">
+                            <form id="youtube-research-form">
+                                <div class="form-group">
+                                    <label>YouTube Video URLs</label>
+                                    <div id="yt-url-list" class="dynamic-input-list">
+                                        <div class="input-row">
+                                            <input type="url" name="urls[]"
+                                                placeholder="https://youtube.com/watch?v=..." class="dark-input"
+                                                required>
+                                            <button type="button" class="add-btn" id="add-yt-url">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Removed Deep Search toggle per user request (will grab everything by default) -->
+                                <button type="submit" id="search-youtube-btn" class="primary-btn">
+                                    <i data-lucide="video" class="btn-icon"></i> Search Content
+                                </button>
+                            </form>
+                            <div id="youtube-research-results" class="research-results-display"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Sidebar Log Panel -->
+            <section class="dashboard-card log-card">
+                <div class="card-header">
+                    <h3>System Status</h3>
+                </div>
+                <div class="log-terminal">
+                    <p class="log-line"><span class="time">[Init]</span> Environment loaded</p>
+                    <p class="log-line"><span class="time">[API]</span> AI engine connected</p>
+                    <p class="log-line"><span class="time">[DB]</span> Storage ready</p>
+                    <p class="log-line"><span class="time">[OK]</span> System operational</p>
+                </div>
+            </section>
+        </aside>
+
+
+        <!-- RIGHT MAIN CONTENT (70%) - Inner Workings -->
+        <main class="main-content">
+            <header class="main-header">
+                <div id="user-info-display" style="display: flex; align-items: center; gap: 12px; height: 100%;"></div>
+                <div class="status-indicators">
+                    <button id="view-history-btn" class="header-action-btn"><i data-lucide="history"
+                            class="header-icon"></i> History</button>
+                    <span class="indicator active"><span class="dot"></span>System Ready</span>
+                    <span id="orchestrator-status" class="indicator"><span class="dot"></span><span
+                            id="orchestrator-status-text">Orchestrator Idle</span></span>
+                </div>
+            </header>
+
+            <div class="dashboard-grid">
+                <!-- Results Panel (Takes full width of right side for now) -->
+                <section id="results-panel" class="dashboard-card preview-card">
+                    <div class="card-header" style="display: none;">
+                    </div>
+
+                    <div id="empty-state" class="empty-state">
+                        <div class="empty-icon"><i data-lucide="zap"></i></div>
+                        <h3>Ready to Automate</h3>
+                        <p>Configure your parameters and let intelligent automation handle the content creation.</p>
+                    </div>
+
+                    <!-- Horizontal Stepper Progress Tracker -->
+                    <div id="generation-progress" class="generation-progress hidden">
+                        <div class="progress-header">
+                            <i data-lucide="cpu" style="width: 18px; height: 18px; color: var(--brand-primary);" aria-hidden="true"></i>
+                            <span id="progress-title" aria-live="polite">Generating Content...</span>
+                        </div>
+
+                        <div class="stepper-track" role="list">
+                            <!-- Step 1: Research -->
+                            <div class="progress-stage" id="stage-research" role="listitem">
+                                <div class="stepper-circle">
+                                    <span class="step-number">1</span>
+                                    <span class="step-check">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </span>
+                                </div>
+                                <div class="stepper-label">Research</div>
+                                <div class="stage-status" id="stage-research-status" aria-live="polite">Waiting</div>
+                            </div>
+
+                            <!-- Connector Line -->
+                            <div class="stepper-connector" aria-hidden="true"><div class="stepper-connector-fill" id="connector-1"></div></div>
+
+                            <!-- Step 2: Pattern Analysis -->
+                            <div class="progress-stage" id="stage-pattern" role="listitem">
+                                <div class="stepper-circle">
+                                    <span class="step-number">2</span>
+                                    <span class="step-check">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </span>
+                                </div>
+                                <div class="stepper-label">Pattern Analysis</div>
+                                <div class="stage-status" id="stage-pattern-status" aria-live="polite">Waiting</div>
+                            </div>
+                            
+                            <!-- Connector Line -->
+                            <div class="stepper-connector" aria-hidden="true"><div class="stepper-connector-fill" id="connector-2"></div></div>
+
+                            <!-- Step 3: Caption Generation -->
+                            <div class="progress-stage" id="stage-text" role="listitem">
+                                <div class="stepper-circle">
+                                    <span class="step-number">3</span>
+                                    <span class="step-check">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </span>
+                                </div>
+                                <div class="stepper-label">Caption Generation</div>
+                                <div class="stage-status" id="stage-text-status" aria-live="polite">Waiting</div>
+                            </div>
+
+                            <!-- Connector Line -->
+                            <div class="stepper-connector" aria-hidden="true"><div class="stepper-connector-fill" id="connector-3"></div></div>
+
+                            <!-- Step 4: Visual Generation -->
+                            <div class="progress-stage" id="stage-image" role="listitem">
+                                <div class="stepper-circle">
+                                    <span class="step-number">4</span>
+                                    <span class="step-check">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                    </span>
+                                </div>
+                                <div class="stepper-label">Visual Generation</div>
+                                <div class="stage-status" id="stage-image-status" aria-live="polite">Waiting</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="results-content" class="results-content hidden">
+                        <!-- ... (60/40 layout above) ... -->
+                        <div class="results-layout">
+                            <!-- Left: Caption -->
+                            <div class="result-column caption-col">
+                                <label class="section-label">Generated Caption</label>
+                                <div id="caption-preview" class="code-block"></div>
+
+                                <!-- Consolidated Actions -->
+                                <div class="action-panel">
+                                    <button id="regenerate-caption-btn" class="icon-btn" title="Regenerate Caption">
+                                        <i data-lucide="refresh-cw" class="btn-icon"></i> Regen Text
+                                    </button>
+                                    <button id="copy-btn" class="icon-btn" title="Copy Text">
+                                        <i data-lucide="copy" class="btn-icon"></i> Copy
+                                    </button>
+                                    <button id="regenerate-image-btn" class="icon-btn" title="Regenerate Image">
+                                        <i data-lucide="image" class="btn-icon"></i> Regen Image
+                                    </button>
+                                    <button id="approve-btn" class="action-btn success-btn">
+                                        Approve & Save
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Right: Visual Asset -->
+                            <div class="result-column asset-col">
+                                <label class="section-label">Visual Asset</label>
+                                <div id="asset-preview" class="asset-preview-container"></div>
+                            </div>
+                        </div>
+
+                        <!-- Full Width Image Prompt -->
+                        <div id="image-prompt-container" class="full-width-prompt"></div>
+                        
+                        <!-- Carousel Slides Panel (Only visible for carousel type) -->
+                        <div id="carousel-slides-panel" class="carousel-slides-panel hidden">
+                            <h4 class="carousel-panel-title">📍 Carousel Content Layout</h4>
+                            <div id="carousel-slides-container" class="carousel-slides-container"></div>
+                        </div>
+                    </div>
+
+                    <!-- Research Results Expansion Area (For Selection/Stats) -->
+                    <div id="research-expansion-panel" class="research-expansion-panel hidden">
+                        <div class="expansion-header">
+                            <h4 id="expansion-title">Research Findings</h4>
+                            <button id="close-expansion-btn" class="icon-btn"><i data-lucide="x"></i></button>
+                        </div>
+                        <div id="expansion-content" class="expansion-content"></div>
+                        <div id="expansion-actions" class="expansion-actions"></div>
+                    </div>
+
+                    <!-- History Modal Backdrop -->
+                    <div id="history-modal-backdrop" class="modal-backdrop hidden" aria-hidden="true"></div>
+
+                    <!-- History Modal (Initially Hidden) -->
+                    <div id="history-view" class="history-modal hidden" role="dialog" aria-modal="true" aria-labelledby="history-modal-title" tabindex="-1">
+                        <div class="modal-header">
+                            <div>
+                                <h3 id="history-modal-title">Generation History</h3>
+                                <p class="modal-subtitle">Archive of all AI generations and scraping runs.</p>
+                            </div>
+                            <button id="close-history-btn" class="icon-btn" aria-label="Close history modal"><i data-lucide="x"></i></button>
+                        </div>
+                        <div class="table-container" style="overflow-x: auto; max-height: calc(85vh - 120px); overflow-y: auto;">
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Topic / Prompt</th>
+                                        <th>Type</th>
+                                        <th>Concept</th>
+                                        <th>Date & Time</th>
+                                        <th>LLM Tokens</th>
+                                        <th>LLM Cost</th>
+                                        <th>Scraper Cost</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="history-table-body">
+                                    <!-- Rows injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Surveillance View Area -->
+                    <section id="surveillance-view" class="history-view hidden" style="padding: 30px; overflow-y: auto;" aria-labelledby="surv-title">
+                        <header class="expansion-header" style="margin-bottom: 24px;">
+                            <h2 id="surv-title" style="text-wrap: balance; font-size: 1.6rem; color: var(--text-primary); margin: 0; font-weight: 600;">Surveillance Intelligence <span id="surv-time-label" style="font-size: 0.95rem; color: var(--text-secondary); font-weight: 400; font-variant-numeric: tabular-nums;">(Past 30 Days)</span></h2>
+                        </header>
+                        <div id="surveillance-analytics-board" aria-live="polite">
+                            <!-- Analytics board injected here -->
+                            <div style="color: var(--text-tertiary); font-size: 0.95rem; display: flex; align-items: center; justify-content: center; padding: 40px; background: var(--bg-surface); border-radius: 8px; border: 1px dashed var(--border);">
+                                <div class="loader" style="display: block; margin-right: 12px;" aria-hidden="true">
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                    <div></div>
+                                </div> Loading analytics...
+                            </div>
+                        </div>
+                        
+
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                            <h3 style="font-weight: 600; font-size: 1.25rem; color: var(--text-primary); margin: 0;">Ranked Post Performance</h3>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <label for="surv-sort-filter" style="font-size: 0.78rem; color: var(--text-tertiary); font-weight: 500; white-space: nowrap;">Sort by</label>
+                                <select id="surv-sort-filter" style="
+                                    background: rgba(255,255,255,0.06);
+                                    border: 1px solid rgba(255,255,255,0.12);
+                                    color: var(--text-primary);
+                                    padding: 6px 12px;
+                                    border-radius: 6px;
+                                    font-size: 0.82rem;
+                                    font-family: 'Outfit', sans-serif;
+                                    cursor: pointer;
+                                    outline: none;
+                                    min-width: 160px;
+                                ">
+                                    <option value="engagement-desc">Top Engagement</option>
+                                    <option value="date-desc">Most Recent</option>
+                                    <option value="date-asc">Oldest First</option>
+                                    <option value="likes-desc">Most Likes</option>
+                                    <option value="comments-desc">Most Comments</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="surveillance-post-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 20px;" role="list">
+                            <!-- Ranked posts injected here -->
+                        </div>
+
+                    </section>
+                </section>
+
+
+            </div> <!-- End dashboard-grid -->
+        </main>
+    </div> <!-- End app-layout -->
+
+    <!-- Full Post View Modal (Tabbed) -->
+    <div id="full-post-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="card-header">
+                <h3 id="modal-post-title">Full Resolution Asset</h3>
+                <div class="window-controls">
+                    <button id="close-modal-btn" class="icon-btn" title="Close Modal"><i data-lucide="x"></i></button>
+                </div>
+            </div>
+
+            <!-- Content Tab Pane -->
+            <div id="modal-tab-content" class="modal-body">
+                <div class="modal-content-grid">
+                    <!-- Column 1: Visual -->
+                    <div id="modal-visual-preview" class="modal-visual-box hidden"></div>
+                    
+                    <!-- Column 2: Data -->
+                    <div class="modal-data-column">
+                        <div id="modal-post-text" class="full-post-text"></div>
+                        <div class="modal-meta card-stats" id="modal-post-meta"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leads CRM Tab Pane -->
+            <div id="modal-tab-crm" class="modal-body hidden">
+                <div class="crm-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div>
+                        <h4 style="font-size: 1.1rem; color: var(--text-primary); margin: 0 0 4px 0;">Post Engagement CRM</h4>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0;">Discover target leads engaging with this specific piece of content.</p>
+                    </div>
+                    <button id="modal-scan-leads-btn" class="primary-btn crm-header-btn">
+                        <i data-lucide="scan" style="width: 16px; height: 16px;"></i> Fetch Leads
+                    </button>
+                </div>
+                
+                <!-- Scanning State -->
+                <div id="modal-lead-scan-loading" class="hidden" style="display: flex; align-items: center; gap: 14px; padding: 28px; background: var(--brand-primary-light); border: 2px dashed var(--brand-primary); border-radius: 8px; color: var(--text-secondary); margin-bottom: 20px;">
+                    <div class="loader" style="display: block; --clr: var(--brand-primary); --clr-alpha: rgba(249, 199, 79, 0.1);" aria-hidden="true">
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                        <div></div>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Scanning post reactions & comments...</div>
+                        <div style="font-size: 0.83rem;">Connecting to scraper via Apify. This will take ~20-40 seconds for this single post.</div>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="modal-lead-empty-state" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px; background: rgba(0,0,0,0.02); border: 2px dashed var(--border); border-radius: 12px; text-align: center; margin-top: 20px;">
+                    <i data-lucide="user-search" style="width: 48px; height: 48px; margin-bottom: 16px; color: var(--text-tertiary);"></i>
+                    <p style="color: var(--text-primary); font-size: 1rem; font-weight: 600; margin-bottom: 8px;">No lead data loaded yet.</p>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; max-width: 320px;">Click 'Fetch Leads' to isolate & pull the audience interacting with this specific piece of content.</p>
+                </div>
+
+                <div id="modal-lead-table-container" class="hidden" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+                    <div class="crm-table-wrapper">
+                        <table class="crm-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">Profile</th>
+                                    <th>Name & Headline</th>
+                                    <th style="width: 155px;">Engagement</th>
+                                    <th style="width: 130px;">Activity</th>
+                                    <th>Comment Snippet</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modal-lead-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global Modal Footer -->
+            <div class="card-footer modal-actions">
+                <div class="modal-tabs">
+                    <button class="modal-tab-btn active" data-target="modal-tab-content">
+                        Content
+                    </button>
+                    <button class="modal-tab-btn" data-target="modal-tab-crm">
+                        Leads CRM
+                    </button>
+                </div>
+
+                <button id="modal-repurpose-btn" class="action-btn success-btn">
+                    <i data-lucide="zap" class="btn-icon"></i> Repurpose Post
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Repurpose Configuration Modal -->
+    <div id="repurpose-modal" class="modal-overlay hidden">
+        <div class="modal-content config-modal modal-wide-glass">
+            <div class="modal-header">
+                <h3><i data-lucide="settings-2" class="header-icon" style="color: var(--brand-primary);"></i> Content Settings</h3>
+                <button class="close-modal-btn" id="close-repurpose-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 28px 32px;">
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600;">
+                            <i data-lucide="edit-3" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            New Topic / Angle (Optional)
+                        </span>
+                        <span style="font-size: 0.8rem; color: var(--text-tertiary);">Leave blank to use original</span>
+                    </label>
+                    <textarea id="repurpose-topic-input" class="dark-input glass-input" rows="2" placeholder="e.g., 'Apply this framework to SaaS pricing models'"
+                        style="width: 100%; box-sizing: border-box; resize: none; font-size: 0.95rem; line-height: 1.5; border-color: rgba(249, 199, 79, 0.3); color: var(--text-primary);"></textarea>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                        <i data-lucide="file-text" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                        Source Content Analysys
+                    </label>
+                    <textarea id="repurpose-source-preview" class="dark-input glass-input" rows="5" readonly
+                        style="width: 100%; box-sizing: border-box; resize: none; font-size: 0.9rem; line-height: 1.6;"></textarea>
+                    <div id="repurpose-visual-indicator" class="visual-context-badge hidden"></div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px;">
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                            <i data-lucide="type" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            Post Type
+<!-- ... -->
+                        </label>
+                        <select id="repurpose-type" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                            <option value="text">Text Basic</option>
+                            <option value="article">Article</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                            <i data-lucide="mic" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            Tonal Purpose
+                        </label>
+                        <select id="repurpose-purpose" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                            <option value="educational">Breakdown</option>
+                            <option value="storytelling">Announcement</option>
+                            <option value="authority">Money Math</option>
+                            <option value="promotional">ID-Challenge</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                            <i data-lucide="image" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            Visual Aspect
+                        </label>
+                        <select id="repurpose-visual-aspect" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                            <option value="none">None</option>
+                            <option value="image">Image</option>
+                            <option value="video">Video</option>
+                            <option value="carousel">Carousel</option>
+                        </select>
+                    </div>
+                    <div id="repurpose-visual-style-group" class="form-group" style="display:none;">
+                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                            <i data-lucide="palette" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            Visual Style
+                        </label>
+                        <select id="repurpose-visual-style" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                            <!-- Dynamically populated -->
+                        </select>
+                    </div>
+                </div>
+                <div id="repurpose-style-type-group" style="display: none; margin-top: 18px;">
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                            <i data-lucide="layers" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            Type
+                        </label>
+                        <select id="repurpose-style-type" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                            <!-- Dynamically populated -->
+                        </select>
+                    </div>
+                </div>
+                <div id="repurpose-aspect-ratio-group" style="display: none; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px;">
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                            <i data-lucide="ratio" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            Aspect Ratio
+                        </label>
+                        <select id="repurpose-aspect-ratio" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                            <option value="1:1">1:1 (Square)</option>
+                            <option value="4:5">4:5 (Portrait)</option>
+                            <option value="16:9">16:9 (Landscape)</option>
+                            <option value="9:16">9:16 (Vertical)</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="repurpose-color-palette-group" class="form-group" style="display: none; margin-top: 18px;">
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                        <i data-lucide="paintbrush" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                        Color Palette
+                    </label>
+                    <div class="select-wrapper">
+                        <select id="repurpose-color-palette" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                            <option value="brand">Obsidian Brand</option>
+                            <option value="executive">Executive Navy</option>
+                            <option value="coral">Bold Coral</option>
+                            <option value="emerald">Forest &amp; Cream</option>
+                            <option value="slate">Clean Slate</option>
+                            <option value="midnight">Midnight Pop</option>
+                        </select>
+                    </div>
+                    <div class="palette-preview" id="repurpose-palette-preview"></div>
+                </div>
+            </div>
+            <div class="modal-footer start-aligned" style="padding: 20px 32px;">
+                <button id="close-repurpose-cancel-btn" class="action-btn ghost-btn" onclick="document.getElementById('repurpose-modal').classList.add('hidden')">
+                    Cancel
+                </button>
+                <button id="repurpose-confirm-btn" class="action-btn success-btn glow-btn">
+                    <i data-lucide="arrow-right" class="btn-icon"></i> Generate
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Regenerate Image Modal -->
+    <div id="regenerate-image-modal" class="modal-overlay hidden">
+        <div class="modal-content config-modal modal-wide-glass">
+            <div class="modal-header">
+                <h3><i data-lucide="sparkles" class="header-icon" style="color: var(--brand-primary);"></i> AI Image Refiner</h3>
+                <button class="close-modal-btn" id="close-regen-image-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <!-- Tabs -->
+                <div class="sub-tab-nav" style="margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <button class="sub-tab-btn active" data-regen-tab="tweak">
+                        <span class="sub-tab-icon"><i data-lucide="edit-3"></i></span>
+                        <span class="sub-tab-title">Tweak Prompt</span>
+                    </button>
+                    <button class="sub-tab-btn" data-regen-tab="refine">
+                        <span class="sub-tab-icon"><i data-lucide="wand-2"></i></span>
+                        <span class="sub-tab-title">Refine Existing</span>
+                    </button>
+                </div>
+
+                <!-- Tab 1: Tweak Prompt -->
+                <div id="regen-tab-tweak" class="regen-tab-pane active">
+                    <p style="margin-bottom: 1.5rem; color: var(--text-tertiary); font-size: 0.95rem; line-height: 1.5;">
+                        Modify the original prompt to generate a completely new variation. 
+                        <span style="display:block; font-size: 0.85rem; margin-top: 4px; opacity: 0.7;">(This will create a new image from scratch using the text below)</span>
+                    </p>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                            <i data-lucide="file-edit" style="width: 16px; height: 16px; color: var(--brand-primary);"></i> 
+                            Image Prompt
+                        </label>
+                        <textarea id="regen-tweak-prompt" class="dark-input glass-input" rows="8" 
+                            placeholder="Full image prompt will appear here..."
+                            style="font-family: 'Outfit', sans-serif; font-size: 1rem; line-height: 1.6; resize: vertical; min-height: 180px; width: 100%; box-sizing: border-box;"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                            <i data-lucide="ratio" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            Aspect Ratio
+                        </label>
+                        <select id="regen-tweak-aspect-ratio" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                            <option value="1:1">1:1 (Square)</option>
+                            <option value="4:5">4:5 (Portrait)</option>
+                            <option value="16:9">16:9 (Landscape)</option>
+                            <option value="9:16">9:16 (Vertical)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                            <i data-lucide="paintbrush" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            Color Palette
+                        </label>
+                        <div class="select-wrapper">
+                            <select id="regen-tweak-color-palette" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                                <option value="brand">Obsidian Brand</option>
+                                <option value="executive">Executive Navy</option>
+                                <option value="coral">Bold Coral</option>
+                                <option value="emerald">Forest &amp; Cream</option>
+                                <option value="slate">Clean Slate</option>
+                                <option value="midnight">Midnight Pop</option>
+                            </select>
+                        </div>
+                        <div class="palette-preview" id="regen-tweak-palette-preview"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label" style="color: var(--text-secondary); font-weight: 500;">
+                            <input type="checkbox" id="regen-reference-image-toggle">
+                            <span>Reference Image</span>
+                        </label>
+                        <div id="regen-reference-image-upload" class="ref-upload-zone" style="display: none;">
+                            <input type="file" id="regen-reference-image-file" accept="image/*" class="file-input-hidden">
+                            <button type="button" id="regen-reference-image-btn" class="upload-trigger-btn">
+                                <i data-lucide="upload" style="width:14px;height:14px;"></i> Choose Image
+                            </button>
+                            <span id="regen-reference-image-name" class="ref-file-name"></span>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer start-aligned" style="margin-top: 2rem;">
+                        <button id="cancel-regen-tweak-btn" class="action-btn ghost-btn">
+                            Cancel
+                        </button>
+                        <button id="confirm-regen-tweak-btn" class="action-btn success-btn glow-btn">
+                            <i data-lucide="refresh-cw" class="btn-icon"></i> Generate New
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Refine Existing (Original Layout) -->
+                <div id="regen-tab-refine" class="regen-tab-pane hidden">
+                    <div class="regen-layout">
+                        <!-- Left Col: Image Preview -->
+                        <div class="regen-preview-col">
+                            <div class="regen-image-container">
+                                <img id="regen-source-preview" src="" alt="Source Image" />
+                                <div class="regen-image-overlay">
+                                    <span><i data-lucide="eye"></i> Source Context</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Col: Controls -->
+                        <div class="regen-controls-col">
+                            <p style="margin-bottom: 1.5rem; color: var(--text-tertiary); font-size: 0.9rem;">
+                                Refine your visual asset using the current image as a reference.
+                            </p>
+                            
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                                    <i data-lucide="message-square-plus" style="width: 16px; height: 16px; color: var(--brand-primary);"></i> 
+                                    Refinement (Prompt)
+                                </label>
+                                <textarea id="regen-image-instructions" class="dark-input glass-input" rows="4" 
+                                    placeholder="Describe enhancements... (e.g. 'Make it night time', 'Add neon lights', 'Remove the text')"
+                                    style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                 <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                                    <i data-lucide="palette" style="width: 16px; height: 16px; color: var(--brand-primary);"></i> 
+                                    Visual Style
+                                </label>
+                                 <div class="select-wrapper">
+                                     <select id="regen-visual-style" class="dark-input glass-input">
+                                            <option value="minimal">Minimal Illustration</option>
+                                            <option value="infographic">Infographic / Chart</option>
+                                            <option value="ugc">UGC / YT Vid Style</option>
+                                            <option value="mockup">Device Mockup</option>
+                                            <option value="cinematic">Cinematic (Video)</option>
+                                     </select>
+                                 </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                                    <i data-lucide="ratio" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                                    Aspect Ratio
+                                </label>
+                                <select id="regen-refine-aspect-ratio" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                                    <option value="1:1">1:1 (Square)</option>
+                                    <option value="4:5">4:5 (Portrait)</option>
+                                    <option value="16:9">16:9 (Landscape)</option>
+                                    <option value="9:16">9:16 (Vertical)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                                    <i data-lucide="paintbrush" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                                    Color Palette
+                                </label>
+                                <div class="select-wrapper">
+                                    <select id="regen-refine-color-palette" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                                        <option value="brand">Obsidian Brand</option>
+                                        <option value="executive">Executive Navy</option>
+                                        <option value="coral">Bold Coral</option>
+                                        <option value="emerald">Forest &amp; Cream</option>
+                                        <option value="slate">Clean Slate</option>
+                                        <option value="midnight">Midnight Pop</option>
+                                    </select>
+                                </div>
+                                <div class="palette-preview" id="regen-refine-palette-preview"></div>
+                            </div>
+
+                            <div class="modal-footer start-aligned">
+                                <button id="cancel-regen-image-btn" class="action-btn ghost-btn">
+                                    Cancel
+                                </button>
+                                <button id="confirm-regen-image-btn" class="action-btn success-btn glow-btn">
+                                    <i data-lucide="wand-2" class="btn-icon"></i> Regenerate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Regenerate Caption Modal -->
+    <div id="regenerate-caption-modal" class="modal-overlay hidden">
+        <div class="modal-content config-modal modal-wide-glass">
+            <div class="modal-header">
+                <h3><i data-lucide="message-square-dashed" class="header-icon" style="color: var(--brand-primary);"></i> AI Text Refiner</h3>
+                <button class="close-modal-btn" id="close-regen-caption-btn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="regen-layout">
+                    <!-- Left Col: Current Caption Preview -->
+                    <div class="regen-preview-col">
+                        <label style="color: var(--text-tertiary); font-size: 0.8rem; text-transform: uppercase; margin-bottom: 10px; display: block;">Current Caption</label>
+                        <div id="regen-caption-preview" class="glass-input" style="height: 100%; overflow-y: auto; max-height: 400px; background: rgba(0,0,0,0.3) !important; color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.1); font-family: 'SF Mono', 'Consolas', monospace; padding: 20px; line-height: 1.6; white-space: pre-wrap;">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Right Col: Controls -->
+                    <div class="regen-controls-col">
+                        <p style="margin-bottom: 1.5rem; color: var(--text-tertiary); font-size: 0.9rem;">
+                            Refine the text content using specific instructions.
+                        </p>
+                        
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                                <i data-lucide="command" style="width: 16px; height: 16px; color: var(--brand-primary);"></i> 
+                                Refinement Instructions
+                            </label>
+                            <textarea id="regen-caption-instructions" class="dark-input glass-input" rows="5" 
+                                placeholder="e.g. 'Make it shorter', 'Add more emojis', 'Focus on the benefits', 'Change tone to professional'"
+                                style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                             <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
+                                <i data-lucide="feather" style="width: 16px; height: 16px; color: var(--brand-primary);"></i> 
+                                Tone / Style
+                            </label>
+                             <div class="select-wrapper">
+                                 <select id="regen-caption-style" class="dark-input glass-input">
+                                        <option value="minimal">Minimal / Concise</option>
+                                        <option value="storytelling">Storytelling / Engaging</option>
+                                        <option value="educational">Educational / Instructional</option>
+                                        <option value="contrarian">Contrarian / Bold</option>
+                                        <option value="promotional">Promotional / Sales</option>
+                                 </select>
+                             </div>
+                        </div>
+
+                        <div class="modal-footer start-aligned">
+                            <button id="cancel-regen-caption-btn" class="action-btn ghost-btn">
+                                Cancel
+                            </button>
+                            <button id="confirm-regen-caption-btn" class="action-btn success-btn glow-btn">
+                                <i data-lucide="refresh-cw" class="btn-icon"></i> Regenerate Text
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js?v=6"></script>
+    <script src="script.js?v=6"></script>
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

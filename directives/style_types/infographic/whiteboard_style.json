@@ -1,0 +1,62 @@
+{
+  "label": "Whiteboard Style",
+  "prompts": [
+    {
+      "id": "wb_1",
+      "best_for": "Multi-point tip lists, 9-item category grids, toolkit overviews, checklist-style educational content",
+      "prompt": "A high-resolution, bright photograph of a white dry-erase board featuring a hand-drawn educational infographic written with real dry-erase markers. The central title text {{TEXT_PLACEHOLDER_1}} is written in bold black chisel-tip marker with visible stroke thickness variation, slightly uneven letter sizes, and a faintly wobbly baseline — clearly written by a real human hand, not a font. Underlined with a thick red marker stroke that has slightly uneven pressure. Below the title is a 3x3 grid of colored square boxes drawn in marker (purple, blue, orange, green, yellow, teal, magenta, brown, lime) with imperfect edges and slightly rounded corners from hand drawing. Inside each box is a simple hand-drawn icon (clock, magnifying glass, camera, keyboard, hashtag, @ symbol, hook, lightbulb, question mark) followed by header text {{TEXT_PLACEHOLDER_2}} and smaller descriptive bullet points — all in authentic dry-erase marker handwriting with natural imperfections, inconsistent letter spacing, and slight streaking where the marker ran dry. At the bottom, two columns of text list checklist items, each preceded by a green square checkbox with a checkmark. All text must look genuinely hand-written on a real whiteboard with visible marker texture, NOT computer-generated or typeset. Lighting is even and diffuse, typical of a classroom or office setting.",
+      "layout": "Symmetrical layout anchored by a centered headline. The core content uses a 3x3 grid system for categorization, followed by a split two-column list structure at the bottom for actionable items.",
+      "visual_hierarchy": "1. The main headline (Size + Underline). 2. The colorful 3x3 grid (Color + Central positioning). 3. The icons within the boxes. 4. The checklist at the bottom.",
+      "focal_point": "The 3x3 grid of colored boxes serves as the primary visual anchor, specifically the top-center or center box due to the grid arrangement.",
+      "white_space": "Ample use of negative space around the grid and between checklist items prevents clutter. The whiteboard medium naturally provides a clean background.",
+      "balance": "Highly symmetrical. The centered title and centered grid create vertical stability. The bottom checklists are evenly distributed left and right, maintaining visual equilibrium."
+    },
+    {
+      "id": "wb_2",
+      "best_for": "Provocative questions, audience-facing challenges, crowd reactions, 'why do people...' hooks",
+      "prompt": "A storyboard-style black ink illustration on a light grey background with a vignette effect. Subject - A tightly packed group of 6 diverse characters standing shoulder-to-shoulder as a crowd, bodies overlapping each other naturally like people in a group photo. They are drawn from the head down to upper shoulders ONLY (cropped just below the collarbone, no torso or arms visible) with NO gaps or space between them, shoulders partially hidden behind adjacent characters. Characters from left to right - 1. Woman in hijab looking sideways with concern (her right shoulder tucked behind character 2), 2. Black man looking confused (partially overlapping characters 1 and 3), 3. Older man with glasses and wrinkles looking baffled (standing slightly forward, overlapping neighbors), 4. Black woman with curly hair looking worried (hair partially overlapping character 5), 5. Man in suit and tie looking blankly confused (shoulder behind character 4), 6. Short-haired woman tilting head in question (partially cropped at right edge). They must look like a real group standing together, NOT isolated individual portraits with space between them. Style - Hand-drawn sketch, rough charcoal lines, minimal shading. Text placement - Top center. Top line - '{{TEXT_PLACEHOLDER_1}}' in dark red (#70181E) rough brush font, size 80px. Middle lines - '{{TEXT_PLACEHOLDER_2}}' and '{{TEXT_PLACEHOLDER_3}}' in black hand-printed sans-serif font, size 45px. Lighting - Flat illustration lighting with subtle vignette shadows at corners.",
+      "layout": "Vertical stack composition - Text header block (top 35%) over illustration block (bottom 65%). The characters are clustered tightly together as a unified crowd with overlapping shoulders and bodies, forming a natural pyramid/arc grouping with depth. No gaps between figures.",
+      "visual_hierarchy": "1. Red Headline (Color/Size contrast). 2. Character Faces (Human element/Emotion). 3. Subtext (Explanatory).",
+      "focal_point": "The bold red question '{{TEXT_PLACEHOLDER_1}}' followed immediately by the collective gaze of the characters.",
+      "white_space": "Generous negative space around the text block (approx 150px margins) pushing focus to the center. The bottom is crowded with line work, grounding the composition.",
+      "balance": "Symmetrical balance. The text is centered, and the group of people is balanced with 3 figures on the left and 3 on the right, creating a stable triangular base.",
+      "positioning": "Headline centered at Y -100px. Subtext lines at Y -200px and Y -260px. Character heads align roughly along Y -500px to Y -600px line.",
+      "shadows": "No drop shadows on elements. Background features a vignette gradient darkening the corners (radial gradient from center #FFFFFF to #D9D9D9 at edges).",
+      "gradients": "Subtle radial vignette in background.",
+      "borders": "None. Illustrations use varying line weights (approx 2px to 4px) to define edges.",
+      "textures": "Paper grain texture implies a sketch pad or whiteboard environment.",
+      "heading_font": "Permanent Marker (Google Fonts match) - Handwritten/Brush, approx 72pt.",
+      "body_font": "Patrick Hand or Kalam (Google Fonts match) - Handwritten Sans, approx 48pt."
+    },
+    {
+      "id": "wb_3",
+      "best_for": "Strategic playbooks, multi-phase plans, interconnected concepts with Venn + flowchart structure",
+      "prompt": "A professional business infographic illustration in a hand-drawn 'whiteboard strategy' style, all text written with real dry-erase markers showing authentic human handwriting imperfections. The background is a clean white with a subtle radial vignette. Top center features a bold, black marker title '{{THE_INNOVATION_PLAYBOOK}}' with slightly uneven letter heights, natural wobble in the baseline, and visible chisel-tip stroke variation. Below, three large interlocking circles (Venn diagram style) drawn in sketched marker lines of Blue, Green, and Red with imperfect curvature, containing hand-printed text '{{IDEATION}}', '{{DEVELOPMENT}}', '{{LAUNCH}}'. The middle section is a horizontal flowchart connected by hand-drawn lines, featuring sketched icons (magnifying glass, lightbulb, gear, rocket, arrow) with color-coded step names '{{RESEARCH}}', '{{CONCEPTUALIZE}}', etc. The bottom section is a 2-column table drawn with black marker lines that are not perfectly straight, featuring headers '{{SHORT-TERM_GOALS}}' and '{{LONG-TERM_GOALS}}'. All lettering must have inconsistent spacing, variable pressure strokes, and slight marker streaking — clearly written by hand on a real whiteboard surface, NOT a digital font. The aesthetic is educational and uses a primary color triad.",
+      "layout": "Vertical stack composition divided into three distinct logical sections: conceptual model (circles), process flow (timeline), and outcomes (table). Aligned centrally.",
+      "visual_hierarchy": "1. The three colored circles (Visual Anchor) -> 2. The main title -> 3. The process timeline icons -> 4. The data table.",
+      "focal_point": "The three interlocking circles at the top, due to size and central positioning.",
+      "white_space": "Generous usage around the outer edges and between the three main sections to prevent clutter, though the text within the lower table feels slightly cramped.",
+      "balance": "Symmetrical balance along the vertical axis. The three circles create a stable top base, mirrored by the structured table at the bottom.",
+      "positioning": "Center-aligned content. Margins approx 60px. Elements are distributed with a logic of Concept (Top) to Execution (Middle) to Result (Bottom).",
+      "shadows": "No element shadows (flat design). Background has a subtle vignette (radial gradient from white #FFFFFF to light gray #E0E0E0) to focus attention center.",
+      "gradients": "None on elements. Solid, sketch-style strokes.",
+      "borders": "Hand-drawn style stroke width approx 2px-3px. Inconsistent corner radii to mimic human sketching.",
+      "textures": "Subtle paper grain or whiteboard texture implied by the sketchy line work."
+    },
+    {
+      "id": "wb_4",
+      "best_for": "Contrarian lists, unpopular opinions, myth-busting, 'things nobody tells you' content, personal authority",
+      "prompt": "High-quality realistic photo of a professional man in his 30s with short styled brown hair and a groomed beard, wearing a black half-zip sweater and dark trousers, standing in a modern grey office space with glass partitions. He is smiling at the camera and holding a large vertical whiteboard with both hands. On the whiteboard, text is written with a real black chisel-tip dry-erase marker in authentic messy human handwriting — NOT a digital font. The handwriting must show: uneven letter sizes (some letters slightly bigger or smaller than neighbors), wobbly imperfect baselines that drift slightly upward or downward, inconsistent spacing between words, visible marker stroke thickness variation from changing hand pressure, slight streaking or fading where the marker was running dry, and letters that are clearly imperfect with natural human character. Red marker underlines and bullet points with uneven pressure. The text reads {{TEXT_PLACEHOLDER_LIST}}. Bright, diffuse office lighting, medium shot, eye-level perspective. High contrast between the white board and dark clothing.",
+      "layout": "Asymmetrical composition; subject anchored right, content board anchors center-left. Uses the sign-holding meme format common on social media.",
+      "visual_hierarchy": "1. Headline with red underline. 2. The man's face (human connection). 3. The bulleted list. 4. Bottom conclusion.",
+      "focal_point": "The word 'NOT' underlined in red on the whiteboard, followed immediately by the man's smile.",
+      "white_space": "Ample negative space within the whiteboard margins ensures the text breathes. Background is cluttered but blurred enough to not compete.",
+      "balance": "Visual weight of the large white square is balanced by the dark, vertical mass of the figure.",
+      "positioning": "Subject fills right 40% of frame. Board rotated approx 5 degrees. Text centered horizontally on board.",
+      "shadows": "Soft diffuse ambient shadows under the board and subject. No harsh directional shadows.",
+      "gradients": "None significantly present; flat lighting.",
+      "borders": "Thin metallic silver frame around whiteboard approx 15px width.",
+      "textures": "Smooth whiteboard surface vs. matte fabric of sweater vs. carpeted office floor."
+    }
+  ]
+}

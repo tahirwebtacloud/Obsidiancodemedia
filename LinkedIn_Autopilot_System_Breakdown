@@ -1,0 +1,298 @@
+# LinkedIn Post Generator — Complete System Deep Dive
+
+## What Is This Tool? (The Big Picture)
+
+This is a **LinkedIn content marketing automation system** built for **Obsidian Logic AI**. It takes a topic (or existing content from LinkedIn/YouTube) and generates a ready-to-publish LinkedIn post — complete with caption text and visual assets (images, carousels, video concepts). Think of it as a **content repurposing factory** that can:
+
+1. **Research** what's going viral on LinkedIn and YouTube
+2. **Analyze** competitor content strategies
+3. **Generate** original LinkedIn posts using AI (Gemini 3.0)
+4. **Create visuals** (images, carousels) to accompany the posts
+5. **Track costs** per generation run
+6. **Save** approved content to a database (Baserow)
+
+---
+
+## The Architecture (How Everything Connects)
+
+The tool follows a **3-layer architecture** — the same pattern described in [GEMINI.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/GEMINI.md):
+
+```mermaid
+graph TD
+    A["🖥️ Frontend SPA<br/>(index.html + script.js + style.css)"] -->|HTTP POST / SSE Stream| B["⚙️ Backend Server<br/>(server.py — FastAPI on :9999)"]
+    B -->|Subprocess Call| C["🔧 Orchestrator<br/>(orchestrator.py)"]
+    C -->|Routes to| D["📝 generate_assets.py<br/>(Single Posts)"]
+    C -->|Routes to| E["📊 generate_carousel.py<br/>(Carousel Posts)"]
+    D -->|Reads| F["📋 Directives<br/>(directives/*.md)"]
+    E -->|Reads| F
+    D -->|Calls| G["🤖 Gemini 3.0 API<br/>(Text + Image Gen)"]
+    E -->|Calls| G
+    B -->|Research Endpoints| H["🔍 Apify Scrapers<br/>(viral_research_apify.py)"]
+    B -->|YouTube| I["📹 yt-dlp<br/>(local_youtube.py)"]
+    B -->|Save| J["💾 Baserow DB<br/>(baserow_logger.py)"]
+```
+
+| Layer | What It Does | Key Files |
+|-------|-------------|-----------|
+| **Layer 1: Directives** | SOPs (Standard Operating Procedures) written in Markdown that tell the AI *how* to write each type of post | `directives/*.md` |
+| **Layer 2: Orchestration** | Decision-making — reads the user request, routes it to the right generator, manages temp files | [orchestrator.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/orchestrator.py), [server.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/server.py) |
+| **Layer 3: Execution** | Deterministic Python scripts that do the actual work: API calls, scraping, image generation | `execution/*.py` |
+
+---
+
+## The 128 Routing Configurations
+
+The core innovation is a **combinatorial content matrix**. Every generation request is a combination of:
+
+| Dimension | Options (Count) | Details |
+|-----------|-----------------|---------|
+| **Post Type** | Text Basic, Article (2) | Text = ~150 words. Article = 300-500 words. |
+| **Purpose** | Breakdown, Announcement, Money Math, ID-Challenge (4) | Each maps to a different directive file with specific writing instructions |
+| **Visual Aspect** | None, Image, Video, Carousel (4) | Determines if/what visual asset is generated |
+| **Aspect Ratio** | 1:1, 4:5, 16:9, 9:16 (4) | Controls image dimensions |
+
+**2 × 4 × 4 × 4 = 128 distinct generation configs**
+
+### Purpose Types Explained
+
+These are the client's **content playbook frameworks** — each one is a different LinkedIn post archetype:
+
+| Purpose (UI Label) | Internal Value | Directive File | What It's For |
+|---|---|---|---|
+| **Breakdown** | `educational` | [educational_caption.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/educational_caption.md) | Process breakdowns, "here's how X works" posts — teach and inform |
+| **Announcement** | `storytelling` | [storytelling_caption.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/storytelling_caption.md) | Personal stories, milestones, narrative-driven posts |
+| **Money Math** | `authority` | [authority_caption.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/authority_caption.md) | Data-driven, "$X revenue in Y days" thought leadership posts |
+| **ID-Challenge** | `promotional` | [promotional_caption.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/promotional_caption.md) | Identity-challenge posts that provoke action / promote services |
+
+> [!IMPORTANT]
+> The **internal values** (`educational`, `storytelling`, `authority`, `promotional`) are different from the **UI labels** (`Breakdown`, `Announcement`, `Money Math`, `ID-Challenge`). The UI labels are the client's branded framework names. When integrating, you can rename or replace these with your own frameworks.
+
+---
+
+## Complete Workflow (Step by Step)
+
+### Flow 1: Fresh Post Generation
+
+```mermaid
+sequenceDiagram
+    participant U as User (Browser)
+    participant F as Frontend (script.js)
+    participant S as Server (server.py)
+    participant O as Orchestrator
+    participant G as generate_assets.py
+    participant AI as Gemini 3.0 API
+
+    U->>F: Fill form (topic, type, purpose, visual)
+    F->>S: POST /api/generate-stream (SSE)
+    S->>O: subprocess.Popen(orchestrator.py ...)
+    O->>O: Clear .tmp/ (PRE-CLEAR/POST-CLEAR)
+    O->>G: subprocess(generate_assets.py ...)
+    G->>G: Load directive (e.g. educational_caption.md)
+    G-->>S: >>>STAGE:text_start (stdout)
+    G->>AI: Send mega prompt + directive + visual context
+    AI-->>G: JSON response (caption, image_prompt, etc.)
+    G-->>S: >>>STAGE:text_done (stdout)
+    G-->>S: >>>STAGE:image_start (stdout)
+    G->>AI: Generate image from prompt
+    AI-->>G: Image bytes
+    G-->>S: >>>STAGE:image_done (stdout)
+    G->>G: Save final_plan.json to .tmp/
+    S-->>F: SSE events (stage updates + final result)
+    F->>U: Display caption + image in Output Console
+```
+
+### Flow 2: Repurposing Existing Content
+
+This is the **killer feature**. The user finds viral/competitor content and remixes it:
+
+1. **Research phase**: User searches for viral posts, competitor profiles, or YouTube videos
+2. **Select & Repurpose**: User clicks "Repurpose" on any result
+3. **Modal opens**: Shows source content preview, visual context indicator (how many images/videos were found), and the full 128-option routing form
+4. **Generate**: Same pipeline as fresh generation, but with rich source context (original text, images, video transcripts) injected into the AI prompt
+
+### Flow 3: Research Only (No Generation)
+
+The Competitor Hub has three research modes:
+
+| Tab | What It Does | Script Used | External Service |
+|-----|-------------|-------------|-----------------|
+| **Viral** | Search LinkedIn for viral posts on a topic | [viral_research_apify.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/viral_research_apify.py) | Apify LinkedIn Scraper |
+| **Competitor** | Scrape a specific LinkedIn profile's recent posts | [research_competitors.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/research_competitors.py) + [viral_research_apify.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/viral_research_apify.py) | Apify LinkedIn Scraper |
+| **YouTube** | Extract video metadata + transcripts from YouTube URLs | [local_youtube.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/local_youtube.py) (fast) or [apify_youtube.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/apify_youtube.py) (deep) | yt-dlp (free) or Apify |
+
+---
+
+## Every File Explained
+
+### Core Runtime Files
+
+| File | Size | Purpose |
+|------|------|---------|
+| [server.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/server.py) | 33KB | FastAPI server (port 9999). 10+ API endpoints, SSE streaming, history tracking, cost aggregation. **This is the HTTP brain.** |
+| [orchestrator.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/orchestrator.py) | 12KB | Pipeline orchestrator. Parses CLI args, manages .tmp/ directory, routes to the right generator (assets vs carousel). **This is the routing brain.** |
+| [history.json](file:///c:/LinkedIn%20Post%20Generator%20v1.1/history.json) | 412KB | Local JSON file storing all past generation results. Displayed in the History modal. **Contains client data — exclude when integrating.** |
+
+### Execution Scripts (`execution/`)
+
+| Script | Size | What It Does |
+|--------|------|-------------|
+| [generate_assets.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/generate_assets.py) | 51KB | **The main generator.** Builds mega prompts, calls Gemini for text + images, overlays brand logo. Handles all single-post generation. |
+| [generate_carousel.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/generate_carousel.py) | 14KB | **Carousel-specific generator.** 3-phase: plan structure → generate slides → generate caption. |
+| [viral_research_apify.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/viral_research_apify.py) | 28KB | LinkedIn post scraping via Apify. Extracts carousel manifests, OG images, cleans CDN URLs. Has Apify key rotation for rate limits. |
+| [surveillance_scraper.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/surveillance_scraper.py) | 7KB | Scrapes the user's own LinkedIn profile to track performance of their last 7 days of posts. Ranks by engagement, assigns A/B/C tiers. |
+| [local_youtube.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/local_youtube.py) | 6KB | YouTube video analysis using `yt-dlp`. Extracts metadata + full transcripts. Free, no API key needed. |
+| [apify_youtube.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/apify_youtube.py) | 3.5KB | Apify-based YouTube scraping (deeper, paid). Used for "deep search" mode. |
+| [cost_tracker.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/cost_tracker.py) | 3.3KB | Tracks API costs per run (Gemini tokens, image gen, Apify scrapes). Writes to `.tmp/run_costs_*.json`. |
+| [baserow_logger.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/baserow_logger.py) | 10KB | Saves approved posts to Baserow (cloud database). Uploads images, maps fields. |
+| [placid_client.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/placid_client.py) | 6.3KB | Generates PDF carousels via Placid API. **Currently deactivated** — the tool generates carousel text/structure but not the actual PDF slides yet. |
+| [regenerate_caption.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/regenerate_caption.py) | 5.5KB | Regenerates just the caption with custom instructions (keeps same topic/purpose). |
+| [regenerate_image.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/regenerate_image.py) | 14KB | Regenerates images with two modes: **refine** (VLM analyzes current image + instructions) or **tweak** (new prompt from scratch). |
+| [rank_and_analyze.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/rank_and_analyze.py) | 4.4KB | Ranks scraped posts by engagement, performs topic analysis. |
+| [research_competitors.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/research_competitors.py) | 1.9KB | Thin wrapper that calls viral research with competitor profile URLs. |
+| [identify_viral.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/identify_viral.py) | 1.4KB | Identifies viral content patterns from scraped data. |
+| [ingest_source.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/ingest_source.py) | 2.2KB | Ingests source content from URLs using Jina AI reader. |
+| [jina_search.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/jina_search.py) | 2.7KB | Web search enrichment via Jina AI Search API. |
+| [dm_automation.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/dm_automation.py) | 1.5KB | LinkedIn DM automation (sends messages to commenters). Early stage / placeholder. |
+| [check_fields.py](file:///c:/LinkedIn%20Post%20Generator%20v1.1/execution/check_fields.py) | 1.3KB | Utility to check Baserow table fields. |
+
+### Directive Files (`directives/`)
+
+These are the **AI writing instructions** — the secret sauce that makes posts sound right:
+
+| File | Purpose |
+|------|---------|
+| [educational_caption.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/educational_caption.md) / [educational_article.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/educational_article.md) | "Breakdown" framework — teach, explain, share process |
+| [storytelling_caption.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/storytelling_caption.md) / [storytelling_article.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/storytelling_article.md) | "Announcement" framework — personal stories, milestones |
+| [authority_caption.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/authority_caption.md) / [authority_article.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/authority_article.md) | "Money Math" framework — data-driven, ROI-focused |
+| [promotional_caption.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/promotional_caption.md) / [promotional_article.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/promotional_article.md) | "ID-Challenge" framework — provoke identity, call to action |
+| [brand_knowledge.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/brand_knowledge.md) | Brand voice, tone, and knowledge base for the client |
+| [image_prompt_design.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/image_prompt_design.md) | SOP for generating image prompts (what makes a good LinkedIn visual) |
+| [post_design.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/post_design.md) | General post design principles |
+| [color_palettes.json](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/color_palettes.json) | Color palettes for carousel/image generation |
+| [source_ingestion.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/source_ingestion.md) | How to process source content from URLs |
+| [rank_posts.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/rank_posts.md) | How to rank/score scraped posts |
+| [competitor_research.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/competitor_research.md) | SOP for competitor research |
+| [identify_viral_content.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/identify_viral_content.md) | How to identify viral patterns |
+| [dm_workflow.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/directives/dm_workflow.md) | DM automation workflow |
+| `style_types/` | Visual style types for infographics and UGC content |
+
+> [!NOTE]
+> The `*_caption.md` files are for short text posts (~150 words). The `*_article.md` files are for long-form articles (300-500 words). The generator picks the right one based on the selected Post Type.
+
+### Frontend (`frontend/`)
+
+| File | Size | What It Contains |
+|------|------|-----------------|
+| [index.html](file:///c:/LinkedIn%20Post%20Generator%20v1.1/frontend/index.html) | 59KB | Full SPA with sidebar (Generate tab + Competitor Hub + System Status log), main output console, repurpose modal, history modal |
+| [script.js](file:///c:/LinkedIn%20Post%20Generator%20v1.1/frontend/script.js) | 157KB | All UI logic: form handling, SSE streaming, modal management, system sounds, API calls, card rendering for research results |
+| [style.css](file:///c:/LinkedIn%20Post%20Generator%20v1.1/frontend/style.css) | 73KB | Dark theme with glassmorphism, animated stepper progress, brand colors (Obsidian Black `#0E0E0E` + Signal Yellow `#F9C74F`) |
+
+### Configuration & Meta Files
+
+| File | Purpose | Contains Client Data? |
+|------|---------|----------------------|
+| [.env](file:///c:/LinkedIn%20Post%20Generator%20v1.1/.env) | API keys (Gemini, Apify, Baserow, Jina, Placid) | ⚠️ **YES — has client's API keys** |
+| [.env.example](file:///c:/LinkedIn%20Post%20Generator%20v1.1/.env.example) | Template showing required env vars | No |
+| [history.json](file:///c:/LinkedIn%20Post%20Generator%20v1.1/history.json) | All past generation results | ⚠️ **YES** |
+| [linkedin_cookies.txt](file:///c:/LinkedIn%20Post%20Generator%20v1.1/linkedin_cookies.txt) | LinkedIn session cookies for scraping | ⚠️ **YES** |
+| [gsheet_credentials.json](file:///c:/LinkedIn%20Post%20Generator%20v1.1/gsheet_credentials.json) | Google Sheets OAuth credentials | ⚠️ **YES** |
+| [token.json](file:///c:/LinkedIn%20Post%20Generator%20v1.1/token.json) | Google OAuth token | ⚠️ **YES** |
+| [requirements.txt](file:///c:/LinkedIn%20Post%20Generator%20v1.1/requirements.txt) | Python dependencies | No |
+| [ARCHITECTURE.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/ARCHITECTURE.md) | Detailed architecture documentation | No |
+| [README.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/README.md) | Setup and usage guide | No |
+| [TROUBLESHOOTING.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/TROUBLESHOOTING.md) | Known bugs and fixes | No |
+| [GEMINI.md](file:///c:/LinkedIn%20Post%20Generator%20v1.1/GEMINI.md) | Agent instructions (3-layer architecture guide) | No |
+
+### LinkedIn Guidelines (`LinkedIn guidelines/`)
+
+Reference material the client studied to build the system:
+
+| File | What It Is |
+|------|-----------|
+| `ULTIMATE TOP PERFORMING LINKEDIN POST GUIDELINES.txt` | Research on what makes LinkedIn posts perform well |
+| `LINKEDIN HOOK GUIDELINES.txt` | How to write compelling opening hooks |
+| `Personal Branding Masterclass...txt` | Transcript from Chris Donnelly's branding course |
+| `The Last Video You Need to Watch on Strategy.txt` | Strategy video transcript |
+| `This PM was Laid Off...txt` | Case study transcript |
+
+> [!TIP]
+> These are **research reference files** — they informed how the directives were written. They're not used at runtime. You can replace them with your own research.
+
+### Agent Configuration (`.agent/`)
+
+| Directory | Count | Purpose |
+|-----------|-------|---------|
+| `.agent/skills/` | 252 files | AI agent skills (brand identity, canvas design, YouTube scraping, frontend design, etc.) |
+| `.agent/rules/` | 24 files | Conditional rules for the AI agent (Gemini API dev, etc.) |
+
+> [!IMPORTANT]
+> The `.agent/` directory is for the **AI coding assistant** (like me), not for the tool's runtime. These skills help the AI agent build and maintain the tool. They're the reason you see skills like `brand-identity`, `algorithmic-art`, `youtube-scraping`, etc. — they're my instruction manual, not part of the LinkedIn tool itself.
+
+---
+
+## External Services & API Dependencies
+
+| Service | What It's Used For | Required? | Cost |
+|---------|-------------------|-----------|------|
+| **Google Gemini 3.0** | Text generation + Image generation | ✅ Required | Pay-per-token |
+| **Apify** | LinkedIn scraping (viral, competitor, surveillance) + YouTube deep search | ✅ For research features | Pay-per-scrape |
+| **Baserow** | Cloud database to save approved posts | Optional | Free tier available |
+| **Jina AI** | Web content reading / search enrichment | Optional | Free tier available |
+| **Placid** | PDF carousel generation | ❌ Currently deactivated | Pay-per-PDF |
+| **yt-dlp** | YouTube metadata + transcript extraction | ✅ For YouTube features | Free (local tool) |
+
+---
+
+## Why Do All These Files/Skills Exist?
+
+### "Why so many directives?"
+Each directive is a different **content playbook framework**. The client's marketing strategy uses 4 frameworks (Breakdown, Announcement, Money Math, ID-Challenge), and each has both a caption (short) and article (long) variant. Plus supporting directives for visuals, research, and brand knowledge. **This is the core IP of the tool.**
+
+### "Why so many execution scripts?"
+Each script handles one specific job: one for generating posts, one for generating carousels, one for research, one for YouTube, one for tracking costs, etc. This follows the **3-layer architecture principle** — push complexity into deterministic scripts so errors don't compound.
+
+### "Why the `.agent/skills/` folder with 252 files?"
+These are **instructions for the AI coding agent** (tools like me). They tell the AI how to write code for this project (brand colors, design system, how to handle errors, etc.). They are NOT runtime dependencies of the LinkedIn tool. You can strip them out when integrating.
+
+### "Why `history.json` and `TROUBLESHOOTING.md`?"
+- `history.json` = local log of every generation run (412KB of client data — **exclude this**)
+- `TROUBLESHOOTING.md` = documented bugs and their fixes. This is a **learning document** from the self-annealing loop described in `GEMINI.md`
+
+---
+
+## What to Keep vs. What to Strip When Integrating
+
+### ✅ Keep (Core Engine)
+- `server.py` — the API server
+- `orchestrator.py` — the routing pipeline
+- `execution/generate_assets.py` — main generator
+- `execution/generate_carousel.py` — carousel generator
+- `execution/cost_tracker.py` — cost tracking
+- `execution/regenerate_caption.py` — caption regen
+- `execution/regenerate_image.py` — image regen
+- `frontend/` — the UI (customize to your brand)
+- `directives/` — rewrite with YOUR content frameworks
+- `.env.example` — env var template
+- `requirements.txt` — dependencies
+
+### ✅ Keep If You Want Research Features
+- `execution/viral_research_apify.py` — viral research
+- `execution/surveillance_scraper.py` — self-monitoring
+- `execution/local_youtube.py` — YouTube analysis
+- `execution/research_competitors.py` — competitor scraping
+- `execution/rank_and_analyze.py` — post ranking
+
+### ⚠️ Exclude (Client Data)
+- `.env` — contains client's API keys
+- `history.json` — client's generation history
+- `linkedin_cookies.txt` — client's LinkedIn session
+- `gsheet_credentials.json` / `token.json` — client's Google OAuth
+- `directives/brand_knowledge.md` — client's brand info
+
+### 🔧 Optional / Deactivated
+- `execution/placid_client.py` — carousel PDF generation (deactivated)
+- `execution/baserow_logger.py` — Baserow integration (replace with your DB)
+- `execution/dm_automation.py` — LinkedIn DM automation (early stage)
+- `.agent/` — AI agent skills/rules (for development, not runtime)
+- `LinkedIn guidelines/` — research reference material
+- `ARCHITECTURE.md`, `README.md`, `TROUBLESHOOTING.md` — documentation

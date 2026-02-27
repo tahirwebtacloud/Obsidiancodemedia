@@ -1,0 +1,25 @@
+# Master Handoff Prompt: Obsidian Logic Marketing System (SaaS Rewrite)
+
+**Objective for AI Assistant (Claude/Cursor):**
+I need you to analyze two existing codebases in my workspace and merge their best features into a unified, multi-tenant SaaS application. We are transforming my existing "LinkedIn Post Generator v1.1" and integrating features from "Keith's Assessment Tool" (a LinkedIn intelligence platform).
+
+This is a massive refactoring and feature-building effort. Because of the complexity, I have broken the implementation plan down into **6 Highly Detailed Phases**. 
+
+## Global Architecture Rules
+1. **Backend:** Python FastAPI ([server.py](file:///c:/Users/Hp/Documents/Keith%20Assesment%20Tool/Antigravity_Linkedin_Assessment%20%20clean/LinkedIn%20Post%20Generator%20v1.1/server.py)) serving both API routes and static frontend files.
+2. **Auth & Data Layer:** Firebase Authentication + Firestore Database (document-oriented, perfect for SaaS multi-tenancy).
+3. **Execution Layer:** Python scripts in [execution/](file:///c:/Users/Hp/Documents/Keith%20Assesment%20Tool/__MACOSX/Antigravity_Linkedin_Assessment%20%20clean/._execution) orchestrated by [orchestrator.py](file:///c:/Users/Hp/Documents/Keith%20Assesment%20Tool/Antigravity_Linkedin_Assessment%20%20clean/LinkedIn%20Post%20Generator%20v1.1/orchestrator.py) via subprocesses. Highly deterministic.
+4. **Frontend:** Vanilla ES6 Javascript SPA.
+5. **Intelligence Engines:** Gemini 3.0 API (core generation), Apify (surveillance/research), Firecrawl (brand extraction).
+
+## How to Proceed
+Do not write the entire application at once. We will go **phase by phase**.
+Please read the attached phase files to understand the deep breakdown of each requirement:
+1. `handoff_phase_1.md` - Firebase Auth & Database Foundation
+2. `handoff_phase_2.md` - Frontend ES6 Modularization & The Auth Shell
+3. `handoff_phase_3.md` - The Intelligence Engines (Back-End Scripts & UI)
+4. `handoff_phase_4.md` - Full Surveillance & Lead Warmth Delta Pipeline
+5. `handoff_phase_5.md` - The "Self-Annealing" Performance Loop
+6. `handoff_phase_6.md` - Final UI Assembly & Polish
+
+**Acknowledge that you have received this master prompt and are ready to review Phase 1. Once you are ready, I will give you the command to begin writing code for Phase 1.**

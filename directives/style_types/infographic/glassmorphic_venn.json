@@ -1,0 +1,35 @@
+{
+  "label": "Glassmorphic Venn",
+  "prompts": [
+    {
+      "id": "gv_1",
+      "best_for": "3-way overlapping concepts, finding intersections, synergy between ideas, combined factors leading to a result",
+      "prompt": "High-quality corporate infographic design featuring a central three-circle Venn diagram on a clean white background. Flat vector illustration style. The three primary circles are colored Blue (top), Red (bottom-left), and Yellow (bottom-right), with overlapping sections showing blended secondary colors (purple, orange, dark teal). The central intersection is white labeled {{TEXT_PLACEHOLDER_RESULT}}. Each main circle contains a smaller white circle with bold numbers {{TEXT_PLACEHOLDER_01}}, {{TEXT_PLACEHOLDER_02}}, {{TEXT_PLACEHOLDER_03}}. Surrounding the diagram are text blocks with headers {{TEXT_PLACEHOLDER_OPTION_TITLES}} and placeholder body text, paired with minimalist flat icons: a figure climbing stairs, a magnifying glass, and a trophy. Modern sans-serif typography, soft diffuse lighting, balanced symmetrical composition, professional business aesthetic.",
+      "layout": "Radial composition centered around the Venn diagram. The text blocks function as satellites, creating a balanced, tripod-like structure.",
+      "visual_hierarchy": "1. The colored Venn Diagram (shapes/colors). 2. The bold numbers (01, 02, 03). 3. The 'Result' center point. 4. Icons. 5. Text headers and body copy.",
+      "focal_point": "The central white intersection labelled 'RESULT', framed by the high-contrast surrounding colors.",
+      "white_space": "Generous use of negative space around the perimeter and between text blocks to prevent clutter and enhance readability.",
+      "balance": "Asymmetrical but visually balanced; the three lobes of the diagram create a stable triangular foundation."
+    },
+    {
+      "id": "gv_2",
+      "best_for": "4-pillar frameworks, quadrant models, balanced systems, multi-factor strategies branching from a central idea",
+      "prompt": "High-quality vector infographic design, flat lay, centered composition on a pure white background. A 4-part Venn diagram structure featuring four circular nodes arranged in a radial cross pattern overlapping a central white circular hub. The nodes feature a smooth color gradient transition: top-left cyan node with line-art rocket icon, top-right medium blue node with trophy icon, bottom-right lavender node with globe icon, bottom-left violet node with mountain flag icon. Thin connector lines extend outward from the nodes to text blocks containing {{TEXT_PLACEHOLDER_1}} headers and {{TEXT_PLACEHOLDER_2}} body copy. Central hub contains {{TEXT_PLACEHOLDER_3}} title text. Minimalist corporate aesthetic, soft drop shadows for depth, clean sans-serif typography, professional and modern mood.",
+      "layout": "Radial grid system with perfect symmetry. The composition is centered, utilizing a cross-formation where four elements branch out from a central core. Text is aligned to the outer edges (left-aligned on the left, right-aligned on the right) creating a balanced frame.",
+      "visual_hierarchy": "1. Central Title Circle (Primary Anchor) 2. Colored Circular Nodes (Secondary Visuals) 3. Icons inside nodes 4. Outer Headers (Infodata) 5. Body text.",
+      "focal_point": "The central white circle labeled 'VENN DIAGRAM', acted upon by the converging colored circles.",
+      "white_space": "Generous use of negative space around the perimeter and between the text blocks and the diagram, preventing clutter and enhancing the clean, professional look.",
+      "balance": "Symmetrical balance. The visual weight is evenly distributed across all four quadrants, with the cool color gradient providing a subtle directional flow (clockwise or top-to-bottom)."
+    },
+    {
+      "id": "gv_3",
+      "best_for": "Mind maps, topic decomposition, 8-10 point idea lists, brainstorming layouts, hierarchical breakdowns",
+      "prompt": "Flat vector infographic design of a symmetrical mind map diagram on a clean off-white background. A large central pastel yellow circle containing text {{TEXT_PLACEHOLDER_1}} serves as the core node. Ten pill-shaped sub-nodes are arranged in two columns of five on the left and right sides, connected to the center by thin dotted black lines with right-angle turns. The nodes feature a rainbow pastel color palette including periwinkle blue, lavender, mint green, salmon pink, and peach, mirrored vertically. Each node contains a number in a circle, a header {{TEXT_PLACEHOLDER_2}}, and description text {{TEXT_PLACEHOLDER_3}}. The overall style is minimalist, corporate, and clean with soft lighting and no drop shadows.",
+      "layout": "Radial hierarchy combined with a two-column grid structure. Central hub with symmetrical branching to the left and right.",
+      "visual_hierarchy": "1. Central 'MAIN IDEA' circle (size and central position). 2. The header 'MIND MAP'. 3. The colored sub-nodes numbered 1-10 sequentially.",
+      "focal_point": "The large pastel yellow circle in the absolute center labeled 'MAIN IDEA'.",
+      "white_space": "Generous negative space surrounds the entire graphic and separates the individual nodes, preventing clutter and enhancing readability.",
+      "balance": "Perfectly symmetrical balance across the vertical axis, creating a sense of stability, order, and professionalism."
+    }
+  ]
+}

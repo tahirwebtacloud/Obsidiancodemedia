@@ -1,0 +1,34 @@
+# Phase 2: Frontend ES6 Modularization & The Auth Shell
+
+**Goal:** The current frontend relies on a massive, 157KB monolithic [script.js](file:///c:/Users/Hp/Documents/Keith%20Assesment%20Tool/Antigravity_Linkedin_Assessment%20%20clean/LinkedIn%20Post%20Generator%20v1.1/frontend/script.js) file. Before we can safely add complex UI features (like SaaS dashboards or CRM tables), we must break this file apart logically.
+
+## 1. What "Breaking Apart" Means
+
+We are migrating from a single `<script src="script.js">` to a modern ES6 module architecture using `<script type="module" src="js/main.js">`.
+You will extract specific functionality from [script.js](file:///c:/Users/Hp/Documents/Keith%20Assesment%20Tool/Antigravity_Linkedin_Assessment%20%20clean/LinkedIn%20Post%20Generator%20v1.1/frontend/script.js) and move it into scoped, standalone files. This makes the code maintainable, testable, and prevents naming collisions.
+
+- Remove all global DOM (Document Object Model) queries from the top of the old file.
+- Encapsulate UI logic inside classes or specific exported functions.
+- Setup an event bus or standard import/export structure for state sharing.
+- **CRITICAL:** Ensure that every functionality keeps stable, then test and retest to verify it. Make sure that these changes won't break things up or push the app to throw errors.
+
+## 2. Implement the New ES6 Structure
+
+Create the following directory tree under `frontend/`:
+
+- **`js/core/api.js`**: An abstraction layer over the [fetch](file:///c:/Users/Hp/Documents/Keith%20Assesment%20Tool/Antigravity_Linkedin_Assessment%20%20clean/LinkedIn%20Post%20Generator%20v1.1/execution/viral_research_apify.py#16-37) API. Every frontend HTTP request to the backend must go through this file so that we can automatically append the Firebase ID Token (JWT) into the `Authorization: Bearer <token>` header.
+- **`js/core/auth.js`**: Handles the Firebase web SDK logic. Listens to `onAuthStateChanged`. If the user logs in, it fetches their token and stores it. If they log out, it purges the token and shows the login screen.
+- **`js/core/theme.js`**: Replaces the old static CSS variable swaps. It will pull the user's fetched theme configuration from the database and inject it into the DOM.
+- **`js/modules/studio.js`**: The pure extraction of the existing post automation workflow (generator, orchestrator progress bar, carousel previews, etc.).
+- **`js/main.js`**: The entry point that initializes Auth, then conditionally imports and boots up the specific UI modules when the user is authenticated.
+
+## 3. The Auth Wall & 5-Section Shell
+
+- Modify [index.html](file:///c:/Users/Hp/Documents/Keith%20Assesment%20Tool/Antigravity_Linkedin_Assessment%20%20clean/LinkedIn%20Post%20Generator%20v1.1/frontend/index.html) to hold two main layers: A full-screen Login/Signup container, and the Main App container.
+- If unauthenticated, hide the Main App container and show the Login UI using Firebase UI or custom built email/password forms.
+- Once authenticated, switch to the new 5-Section Sidebar Navigation:
+  1. 📊 **Dashboard**: Action-oriented onboarding.
+  2. 🧠 **Network CRM**: The CRM component.
+  3. ✍️ **Studio**: The original generation tool.
+  4. 🕵️ **Surveillance**: Post tracking.
+  5. ⚙️ **Settings**: Data uploads and theme configurations.

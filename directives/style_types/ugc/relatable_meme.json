@@ -1,0 +1,55 @@
+{
+  "label": "Relatable Meme Posts",
+  "prompts": [
+    {
+      "id": "rm_1",
+      "best_for": "Blame games, 'everyone thinks they're right', role confusion, team dynamics, 3-way finger-pointing scenarios",
+      "prompt": "A high-resolution, photorealistic studio shot of three Spider-Man actors (resembling Tom Holland, Andrew Garfield, and Tobey Maguire) standing in a triangular formation, pointing fingers at each other in a circular blame gesture. The characters are wearing their distinct red and blue cinematic suits. The background is a seamless, neutral slate grey backdrop with soft studio lighting and floor shadows. The image mimics the famous Spider-Man Pointing meme format but with live-action movie quality. Overlay text areas: {{TEXT_PLACEHOLDER_1}} centered at the top, {{TEXT_PLACEHOLDER_2}} above the left figure, {{TEXT_PLACEHOLDER_3}} above the center figure, {{TEXT_PLACEHOLDER_4}} above the right figure, and a script logo {{TEXT_PLACEHOLDER_5}} at the bottom center.",
+      "layout": "Centered triangular composition. The headline text anchors the top, the figures form a visual triangle in the middle, and the logo anchors the bottom, creating a vertical symmetry.",
+      "visual_hierarchy": "1. The Headline (sets the context). 2. The Visual (Spider-Man meme/pointing gesture). 3. The Labels (identifying the roles). 4. The Branding (footer logo).",
+      "focal_point": "The center of the image where the pointing fingers converge, specifically drawing the eye between the three faces and hands.",
+      "white_space": "Generous negative space in the grey background allows the red costumes and white text to stand out without visual clutter.",
+      "balance": "Symmetrical balance achieved through the triangular arrangement of the three figures, despite their slightly different poses.",
+      "positioning": "Figures are centered horizontally. Headline text has approximately 80px top padding. Labels are positioned ~20px above heads.",
+      "shadows": "Soft, diffused contact shadows beneath the boots on the floor (approx 15px spread, 30% opacity). No harsh cast shadows.",
+      "gradients": "Background has a subtle radial gradient, lighter in the center (#757273) fading to slightly darker edges (#605D5E).",
+      "borders": "None.",
+      "textures": "Smooth fabric texture visible on the spandex suits; matte finish on the background.",
+      "heading": "Segoe UI / Open Sans - Semibold - approx 48px",
+      "labels": "Segoe UI / Open Sans - Regular - approx 24px",
+      "accent": "Brittany Signature / Script - Handwritten - approx 36px"
+    },
+    {
+      "id": "rm_2",
+      "best_for": "Expectation vs reality, budget comparisons, quality gaps, before/after contrasts, 2x2 grid humor",
+      "prompt": "A 2x2 split-screen meme layout. Top-left quadrant: A hyper-realistic, cinematic 3D render of a Tyrannosaurus Rex in profile roaring, highly detailed skin texture, studio lighting with soft contact shadows on a white background. Bottom-left quadrant: A minimalist 8-bit pixel art T-Rex sprite (resembling the Chrome offline dinosaur), dark grey on a white background. Top-right quadrant: Clean white background containing large sans-serif text '{{TEXT_PLACEHOLDER_1}}' with the second word emphasized in blue. Bottom-right quadrant: Clean white background containing large sans-serif text '{{TEXT_PLACEHOLDER_2}}' with the second word emphasized in blue. Sharp black grid lines separating the four panels.",
+      "layout": "Standard 4-panel grid (2x2 matrix). The left column contains visual metaphors, while the right column contains explanatory labels.",
+      "visual_hierarchy": "1. Realistic T-Rex (Top Left) grabs initial attention due to complexity. 2. Text helps context. 3. Pixel T-Rex (Bottom Left) delivers the punchline. 4. Bottom text confirms the joke.",
+      "focal_point": "The sharp contrast between the hyper-realistic dinosaur and the pixelated sprite.",
+      "white_space": "Generous use of white space in the text panels ensures high readability. The background of the image panels is also white/neutral to isolate the subjects.",
+      "balance": "Asymmetrical visual weight. The top-left image is visually heavy and complex, while the bottom-left is light and minimal, reinforcing the concept of loss of quality/budget.",
+      "positioning": "Text is optically centered within right-side quadrants. Images are centered horizontally. Grid lines are approximately 3-4px thick solid black.",
+      "shadows": "Top T-Rex has a realistic, soft contact shadow to ground it. Bottom T-Rex has a flat, pixelated ground line with no real shadow processing.",
+      "gradients": "None significantly used; flat design for text areas, realistic rendering for top image.",
+      "borders": "Solid black #000000 borders separating the four quadrants.",
+      "textures": "Top image features high-fidelity skin textures (scales, wrinkles). Bottom image utilizes pixel-art aliasing.",
+      "heading": "Oswald or Roboto Condensed - Bold / Regular mix - approx 64px"
+    },
+    {
+      "id": "rm_3",
+      "best_for": "Motivational reactions, 'when you finally...', achievement moments, determination content, single-reaction memes",
+      "prompt": "A classic internet meme format with a white background header and a rectangular image below. Top text in bold black sans-serif font reads: '{{TEXT_PLACEHOLDER_1}}'. The image depicts a cinematic still from a sports biopic featuring an athletic Indian male sprinter mid-stride on an outdoor running track. He has a bun hairstyle, wearing a white vintage running vest with 'INDIA' text and white shorts. The runner is captured in profile view moving left to right, displaying intense focus and muscular definition. The background shows a blurred stadium track with muted terracotta lanes and green grass. Natural daylight, realistic cinematic lighting.",
+      "layout": "Standard vertical meme stack: Text block (approx 20% height) placed above a content image (approx 80% height). Centered alignment.",
+      "visual_hierarchy": "1. The text (sets the context/problem). 2. The runner's face and posture (provides the reaction/punchline). 3. The background details.",
+      "focal_point": "The sprinter's intense facial expression and forward-leaning body posture.",
+      "white_space": "Generous white space in the header area surrounds the text, isolating the caption for maximum readability. No white space within the image itself.",
+      "balance": "Asymmetrical due to the runner's forward momentum leaning right, but balanced by the centered, heavy text block above.",
+      "positioning": "Text is center-aligned horizontally. Top padding approx 60px. Side margins approx 40px. Image is full width relative to the container logic.",
+      "shadows": "No drop shadows on text (flat design). Natural lighting shadows in the photograph (soft shadows cast by the runner's legs on the track).",
+      "gradients": "None in the graphic design elements. Natural lighting gradients on the runner's skin and muscles.",
+      "borders": "Soft rounded corners on the main image container (approx 15px radius). No border strokes.",
+      "textures": "Grainy film texture visible in the photograph, contrasting with the clean digital smoothness of the white background header.",
+      "heading": "Arial or Helvetica - Bold - approx 42px"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "label": "Visual Hook",
+  "prompts": [
+    {
+      "id": "vh_1",
+      "best_for": "Social media tips, digital marketing hooks, content creator advice, platform strategy, influencer-style hooks",
+      "prompt": "A high-fashion editorial studio shot of a young professional woman sitting casually on a modern wooden chair. She is wearing a black oversized blazer, a black top, light wash blue straight-leg jeans, and white sneakers. She balances a silver laptop on her knee with one hand and holds a smartphone up with the other hand, covering her face as if taking a selfie. The background is a seamless, solid off-white studio backdrop. Soft, diffuse lighting creates gentle shadows. Minimalist aesthetic. Overlay text {{TEXT_PLACEHOLDER_1}} in large, condensed, high-contrast serif font arched over her head. Floating social media notification bubbles interact with the subject.",
+      "layout": "Vertical central axis composition. The text forms a semi-circle/arch around the subject's head, guiding the eye downward through the body to the footer elements.",
+      "visual_hierarchy": "1. The headline (specifically any emphasized keyword). 2. The subject (woman with phone/laptop). 3. The floating UI elements (Follow button, likes, chat bubble).",
+      "focal_point": "The emphasized keyword in the headline interacting with the phone covering the face.",
+      "white_space": "Generous negative space on the sides creates a clean, luxury editorial feel, preventing the text-heavy top from feeling cluttered.",
+      "balance": "Symmetrical central subject balanced by asymmetrical text placement and floating UI elements on left and right.",
+      "positioning": "Headline centered horizontally with tight negative leading (~85% line height). Subject centered. UI elements positioned using the rule of thirds.",
+      "shadows": "Subject has soft contact shadows on the floor. UI elements have subtle drop shadows: ~10px blur, y-offset 4px, 10% opacity black.",
+      "gradients": "None visible; flat color design.",
+      "borders": "UI bubbles have rounded corners, approx 15-20px radius. Follow button has approx 8px border radius.",
+      "textures": "Smooth studio background contrast against denim fabric texture.",
+      "heading": "Editorial New or similar Condensed Serif - Regular/Tight Tracking - Very Large (~120pt)",
+      "accent": "Italic Serif (Custom or distinct variant) - Italic - Large",
+      "body": "Inter or Helvetica - Regular - Small (~12-14pt)"
+    },
+    {
+      "id": "vh_2",
+      "best_for": "Engagement tactics, posting strategies, carousel cover slides, how-to hooks, social media playbooks",
+      "prompt": "A flat lay aesthetic social media graphic. Background: A moody, desaturated top-down view of a dark desk surface featuring high-end fashion coffee table books (Dior, Cereal) stacked, with a clear glass cup containing a gold chain necklace, soft shadows, low exposure, chic minimalist vibe. Foreground: A photo-collage sticker cutout effect of a hand holding a beige iPhone with a cream sleeve, surrounded by a thick white outline stroke. Text overlay: Large, white, bold, handwritten marker-style font centered: '{{WHAT_TO_DO}}', '{{IMMEDIATELY}}', '{{AFTER_POSTING}}'. Smaller curved text: '{{IN_ORDER_TO_BOOST_ENGAGEMENT}}'. Bottom right doodle arrow and text: '{{SWIPE_TO_LEARN}}'. High contrast between dark background and bright foreground elements.",
+      "layout": "Centralized composition with a Z-pattern overlay. The background sets a grid with the books, while the text and foreground element (hand) break the grid to create depth. The layout uses a classic Cover Slide structure: Hook at the top/center, visual anchor at the bottom.",
+      "visual_hierarchy": "1. The bold white text (High contrast/Size). 2. The hand holding the phone (Visual anchor/Human element). 3. The background context (books implying lifestyle). 4. The Swipe to learn CTA.",
+      "focal_point": "The emphasized word and the phone screen area serve as the central anchor.",
+      "white_space": "Negative space is utilized through the dark, uncluttered background, allowing the text and sticker cutout to breathe. The spacing between text lines is tight but legible.",
+      "balance": "Asymmetrical balance. The text is centered, but the hand/phone element enters from the bottom-left, balanced by the visual weight of the glass object in the top-right background and the CTA in the bottom-right.",
+      "positioning": "Text is center-aligned. The hand cutout is positioned with an absolute bottom-left anchor, rotated approx 15 degrees clockwise. CTA is absolute bottom-right with ~40px margin.",
+      "shadows": "Text has no drop shadow (flat). The hand/phone cutout has a soft drop shadow: black, approx 20px blur radius, 15px y-offset, 25% opacity, creating a floating sticker effect.",
+      "gradients": "None visible; flat colors and photographic textures.",
+      "borders": "The hand/phone element features a solid white stroke (border), approximately 8-10px width, creating a sticker die-cut aesthetic.",
+      "textures": "Smooth matte finish on the phone case, glossy glass reflection in background, paper texture on books, digital marker texture on text.",
+      "heading": "Permanent Marker / Gochi Hand style - Bold/Handwritten - Large (~80-100pt equivalent)",
+      "body": "Architects Daughter / Hand-drawn sans - Regular - Small (~24pt)"
+    },
+    {
+      "id": "vh_3",
+      "best_for": "Bold single statements, provocative one-liners, minimalist text hooks, carousel covers, clean quote graphics",
+      "prompt": "Minimalist social media carousel cover graphic, high-resolution white stucco wall texture background, bold black sans-serif typography left aligned reading '{{TEXT_PLACEHOLDER_1}}', specific emphasis word '{{TEXT_PLACEHOLDER_2}}' highlighted with a solid vibrant orange rectangular block behind the text, clean modern design style, soft even lighting, minimalist UI element in bottom right corner depicting a pill-shaped button with a right-pointing arrow.",
+      "layout": "Left-aligned typographic composition centered vertically on a 4:5 aspect ratio canvas. Single column grid.",
+      "visual_hierarchy": "1. The highlighted emphasis word (orange block). 2. The headline text. 3. The arrow cue at the bottom right.",
+      "focal_point": "The orange highlight box containing the emphasis word.",
+      "white_space": "Generous negative space on the top and right side, creating a feeling of clarity and simplicity. The texture fills the negative space preventing it from feeling empty.",
+      "balance": "Asymmetrical balance. The heavy visual weight of the left-aligned text block is counterbalanced by the expansive textured negative space and the small navigational cue in the bottom right.",
+      "positioning": "Text block left-aligned with approximately 10-15% margin from the left edge. Vertically optical centered. Navigation pill button positioned approx 5% from bottom and right edges.",
+      "shadows": "No drop shadows on text to maintain flatness. Subtle natural shading inherent in the background wall texture.",
+      "gradients": "None. Flat colors used for text and shapes.",
+      "borders": "1.5px black stroke on the bottom-right pill button. No borders on the main highlight box.",
+      "textures": "Prominent white/light grey stucco or plaster wall texture providing organic noise across the entire background.",
+      "heading": "Inter or Helvetica Now Display - Bold/Black - Very Large (~120px)"
+    },
+    {
+      "id": "vh_4",
+      "best_for": "Wisdom quotes, book-inspired insights, reflective statements, highlighted key phrases, intellectual hooks",
+      "prompt": "Close-up macro photography of a textured book page, minimalist typography design. Center frame contains bold, black sans-serif text {{HEADLINE}} with rough, bright yellow highlighter marker strips behind each line of the headline. Below the headline is smaller, unhighlighted sans-serif text {{SUBTEXT}}. The background is off-white paper with visible grain and faint, out-of-focus text showing through from the reverse side or background layer. Soft, diffused natural lighting, flat lay perspective, high contrast between the yellow highlight and grey paper background.",
+      "layout": "Centralized cluster layout with left-aligned text. The design uses a single column grid focused in the optical center of the canvas.",
+      "visual_hierarchy": "1. The yellow highlighted text grabs immediate attention due to color contrast. 2. The subtext follows. 3. The textured background provides context.",
+      "focal_point": "The longest word in the headline due to its length and the brightness of the yellow block behind it.",
+      "white_space": "Generous negative space surrounds the central text block, creating a feeling of focus and clarity typical of minimalist design.",
+      "balance": "Asymmetrical balance; the text is left-aligned but the block itself is centered, balanced by the uniform texture of the background.",
+      "positioning": "Text block is vertically and horizontally centered. Text alignment is flush left. Line height is tight (approx 1.1).",
+      "shadows": "No drop shadows on text to maintain a flat, printed look. Subtle natural vignetting on the paper background suggests uneven lighting.",
+      "gradients": "None on the graphics. Natural lighting gradient on the paper texture fades from lighter top-left to slightly darker bottom-right.",
+      "borders": "No borders. The yellow highlights act as pseudo-borders/backgrounds for the text lines.",
+      "textures": "Visible paper grain noise. Faint, illegible ghost text in the background creates depth and mimics a real book page.",
+      "heading": "Inter - Bold - Large (approx 80px)",
+      "body": "Inter - Medium - Medium (approx 40px)"
+    }
+  ]
+}

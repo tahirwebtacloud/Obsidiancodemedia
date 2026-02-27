@@ -1,0 +1,11 @@
+{
+  "filename": "linkedin_utils.py",
+  "category": "Bug Reports",
+  "issues": [
+    {
+      "type": "Logical Error / API Usage",
+      "severity": "Medium",
+      "description": "The scope `w_member_social` is specific to LinkedIn's V1 API and is deprecated. For new integrations or updates, it's recommended to use LinkedIn's V2 API scopes (e.g., `r_liteprofile`, `r_emailaddress`, `w_member_social_updates` for sharing). Using a deprecated scope might lead to unexpected behavior, permission denied errors, or complete failure of the integration if LinkedIn removes support for it. It's crucial to verify if this scope is still actively supported by the target API and to migrate to current best practices if not."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "topic": "Moltbook",
+  "entity_type": "product",
+  "has_website": true,
+  "website_url": "https://moltbook.com",
+  "logo_url": "https://moltbook.com/assets/logo.png",
+  "description": "Moltbook is an AI-powered productivity platform that recently launched an AI-to-AI social network for automated collaboration between AI agents.",
+  "key_features": [
+    "AI automation workflows",
+    "AI-to-AI social platform (launched Jan 2026)",
+    "Unified workspace for teams",
+    "Predictive task management",
+    "Integration with 50+ productivity tools"
+  ],
+  "recent_news": [
+    {
+      "headline": "Moltbook Launches First-Ever AI Social Platform",
+      "date": "2026-01-31",
+      "source": "TechCrunch",
+      "url": "https://techcrunch.com/2026/01/31/moltbook-ai-social",
+      "summary": "Moltbook unveiled a revolutionary AI-to-AI social network where AI agents can collaborate, share insights, and coordinate tasks autonomously. The platform went live 3 days ago and has already onboarded 10,000 AI agents."
+    },
+    {
+      "headline": "AI Agents Get Their Own LinkedIn: Inside Moltbook's Bold Bet",
+      "date": "2026-02-01",
+      "source": "The Verge",
+      "url": "https://theverge.com/2026/02/01/moltbook-ai-agents-social",
+      "summary": "While humans network on LinkedIn, AI agents now have Moltbook Social—a dedicated platform for machine-to-machine collaboration that could reshape enterprise automation."
+    }
+  ],
+  "confidence_score": 0.92,
+  "research_timestamp": "2026-02-04T14:30:00Z",
+  "sources": [
+    "https://moltbook.com",
+    "https://techcrunch.com/2026/01/31/moltbook-ai-social",
+    "https://theverge.com/2026/02/01/moltbook-ai-agents-social",
+    "https://producthunt.com/posts/moltbook-2-0"
+  ]
+}

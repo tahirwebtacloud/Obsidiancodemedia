@@ -1,0 +1,35 @@
+{
+  "label": "Bento-Grid Style",
+  "prompts": [
+    {
+      "id": "bg_1",
+      "best_for": "KPI dashboards, metrics showcases, performance snapshots, data-heavy results with multiple numbers",
+      "prompt": "Modern corporate infographic dashboard UI design, modular bento box grid layout. Rounded rectangular cards with soft drop shadows on a light gray background. Color palette: vibrant azure blue and bright teal cyan accents against white. Top left: card with large green '450%' text and {{TEXT_PLACEHOLDER_1}}. Right side: large vertical blue card with white header '{{TEXT_PLACEHOLDER_2}}', subtext, and two building icons in white circles. Bottom left: teal gradient card with '80%' text. Bottom center: white card with blue '+50K' text. Bottom full-width card: profile avatar of a man with glasses, pill-shaped light teal text container reading {{TEXT_PLACEHOLDER_3}}. Clean, minimalist, flat design with slight depth, high resolution 4k.",
+      "layout": "Modular 'bento box' grid system. Three-column structure on top/middle merging into wider spans. Highly structured alignment with consistent gutters between card elements.",
+      "visual_hierarchy": "1. Large Blue Card (Right) - due to size and color saturation. 2. Teal Card (Bottom Left) - secondary color weight. 3. Large Data Numbers (450%, +50K) - due to scale and contrast.",
+      "focal_point": "The large 'Your Text Here' header on the blue background serves as the primary anchor, guiding the eye from right to left across the data points.",
+      "white_space": "Ample inner padding within cards creates breathability. Negative space between the cards (gutters) is consistent, separating information distinct chunks.",
+      "balance": "Asymmetrical balance. The visual weight of the large solid blue block on the right is counterbalanced by the cluster of three lighter/smaller cards on the left."
+    },
+    {
+      "id": "bg_2",
+      "best_for": "Statistical rankings, percentage breakdowns, bar chart comparisons, survey results, progress metrics",
+      "prompt": "Professional corporate infographic design featuring a 3D isometric bar chart on a clean white background. Five vertical rectangular bars of varying heights in a gradient of blue shades, ranging from deep royal blue to bright teal. Each bar contains a white percentage number {{TEXT_PLACEHOLDER_1}} and a thin line icon at the bottom (speech bubble, edit, key, shield, life ring). To the right, a vertical list of five bullet points with circular radio-button style icons and placeholder text {{TEXT_PLACEHOLDER_2}}. Modern, minimalist vector style, flat design with soft shadows, high contrast, suitable for business presentations or financial reports. Soft studio lighting, 4k resolution.",
+      "layout": "Asymmetrical two-column split. The left and bottom 60% is dominated by the visual weight of the bar chart, while the right 40% contains a vertical list of text options. A standard modular grid appears to be used.",
+      "visual_hierarchy": "1. The tall dark blue bar (80%) grabs attention first due to color saturation and size. 2. The main headline 'business infograph'. 3. The remaining bars. 4. The list of text options.",
+      "focal_point": "The leftmost, darkest blue bar (80%) serves as the primary entry point into the graphic.",
+      "white_space": "Generous use of negative space (white) in the upper right quadrant and between the list items helps de-clutter the density of the chart elements.",
+      "balance": "Asymmetrical balance. The heavy visual mass of the colorful bars on the left is counterbalanced by the lighter, textual density on the right."
+    },
+    {
+      "id": "bg_3",
+      "best_for": "Feature comparison matrices, multi-criteria evaluations, tool reviews, checklist-style assessments",
+      "prompt": "Flat vector design corporate presentation slide featuring a comparison matrix table on a clean white background. The table has four horizontal rows with arrow-shaped headers on the left in a descending gradient of blue shades: dark navy, medium blue, teal, and light blue. Three vertical columns are topped with diamond-shaped icons: a document, a box, and a landscape image. The table cells contain placeholder text and circular status icons (checkmarks and crosses). Typography is modern sans-serif. Lighting is even, soft studio style. Text placeholders: {{Main Title}}, {{Subtitle}}, {{Row Label 1}}, {{Row Label 2}}, {{Row Label 3}}, {{Row Label 4}}, {{Column Content}}.",
+      "layout": "Structured grid system with 4 rows and 3 data columns. Left-aligned row headers act as anchors.",
+      "visual_hierarchy": "1. Row Headers (color intensity) -> 2. Top Icons -> 3. Main Title -> 4. Body Content.",
+      "focal_point": "The gradient of blue row headers (Project, Planning, Execution, Control) on the left.",
+      "white_space": "Generous margins around the table and distinct padding within cells creates a clean, uncluttered interface.",
+      "balance": "Asymmetrical balance; heavy visual weight on the left (colored tabs) balanced by the grid structure on the right."
+    }
+  ]
+}

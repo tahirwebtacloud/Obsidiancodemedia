@@ -1,0 +1,20 @@
+# Intermediate and temporary data
+.tmp/
+history.json
+
+# API Keys and Secrets
+.env
+gsheet_credentials.json
+token.json
+firebase-service-account.json
+
+# Python internal files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE and OS specific files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
