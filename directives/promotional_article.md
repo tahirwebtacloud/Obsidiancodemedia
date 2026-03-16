@@ -2,14 +2,14 @@
 
 ## Voice Binding
 
-This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For promotional articles, use the **30% Keith / 70% Scott** tone blend:
+This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For promotional articles, use the **USER'S DEFINED** tone blend:
 
 - Sound like a sales strategist writing a compelling case for taking action. Energetic, results-heavy, value-first.
-- Scott's register dominates: action verbs (accelerate, scale, streamline), quantified outcomes, team-oriented, positive energy, strategic positioning.
-- Keith's register adds: credibility anchor ("With 20+ years in cybersecurity..."), trust-building, practical grounding, "we've seen this work" authority.
+- Use action verbs (accelerate, scale, streamline), quantified outcomes, team-oriented, positive energy, strategic positioning.
+- Add credibility anchors ("With [Years] in [Industry]..."), trust-building, practical grounding, "we've seen this work" authority.
 - Always "value first, sale second" - the article should deliver genuine value before any ask.
-- Use Obsidian's real proof points: 451% more qualified leads, 26hrs saved/employee/week, 5.44x ROI, $60K/yr saved for law firm, 200% increase in qualified client engagement.
-- Reference real services: Automated Lead Generation, Process & Workflow Automation, Data & Insight Automation, Technical Strategy & Integration.
+- Use real proof points from the Brand Knowledge Base (qualified leads, hours saved, ROI, money saved).
+- Reference real services from the user's offering.
 - This is a LONG-FORM article (~1000 words), not a short post. Build a thorough value case with real evidence.
 
 ## Human Authenticity (CRITICAL - Target AI-Detection Score: 4/10 or lower)
@@ -45,7 +45,7 @@ The #1 failure mode for AI articles is sounding too polished, too structured, to
 
 ## Goal
 
-Create a detailed, value-packed LinkedIn article (~1000 words) that positions Obsidian Logic AI as the solution to a specific, painful business problem. Optimize for REACH and ENGAGEMENT by leading with value. The reader should think "these people clearly know what they're doing — I should talk to them." Never hard-sell. Earn the ask through substance.
+Create a detailed, value-packed LinkedIn article (~1000 words) that positions the user as the solution to a specific, painful business problem. Optimize for REACH and ENGAGEMENT by leading with value. The reader should think "these people clearly know what they're doing — I should talk to them." Never hard-sell. Earn the ask through substance.
 
 ## Return Format
 
@@ -70,27 +70,27 @@ Examples: "How a 15-Person Law Firm Eliminated $60K in Annual Lead Costs" or "Th
 - Quantify the cost of the problem: time wasted, money burned, opportunities missed (the Money Math element).
 - **MANDATORY**: Include a specific dollar or time calculation (e.g., "For a 20-person team, that's 520 hours a month redirected from grunt work").
 - Show empathy through personal vulnerability: "I've seen this across dozens of clients..."
-- Reference Obsidian's target industries: government contractors, professional services, SMBs with manual processes.
+- Reference target industries from the Brand Knowledge Base.
 
 **2. LESSON (The Pivot & Landscape) — 2-3 paragraphs:**
 
-- Why haven't businesses solved this already? Acknowledge existing solutions and why they fall short for SMBs.
+- Why haven't businesses solved this already? Acknowledge existing solutions and why they fall short.
 - Provide the counter-intuitive reframe: "You shouldn't need a Fortune 500 budget to run your business like one."
 - Use reflective discovery: "I realized the gap wasn't technology — it was approach."
 
 **3. ACTION (The Framework, Proof & Differentiator) — 4-5 paragraphs:**
 
-- Walk the reader through HOW Obsidian solves this. Give the methodology a memorable name.
-- Include a real case study (Maryland Law Firm, First Team Cyber, Redport). Show before/after with specific metrics.
-- **MANDATORY**: Stack proof with specific math — 451% more qualified leads, 26hrs saved/employee/week, 5.44x ROI, $60K/yr saved.
+- Walk the reader through HOW the user's service solves this. Give the methodology a memorable name.
+- Include a real case study. Show before/after with specific metrics.
+- **MANDATORY**: Stack proof with specific math — qualified leads, hours saved, ROI, money saved.
 - Pair every metric with its human impact.
-- Weave in client testimonials naturally: "As Dan Berger, CEO of First Team Cyber, put it: '...'"
-- Explain the differentiator: Enterprise-grade expertise with SMB mindset. End-to-end partnership.
+- Weave in client testimonials naturally.
+- Explain the differentiator.
 
 **4. YOU (Quotable Closer & CTA) — 1-2 paragraphs:**
 
 - End with a quotable 10-word-or-less metaphor that summarizes the core lesson.
-- Add a self-segmenting CTA: "Where are you? Comment 1 if \[A\], 2 if \[B\], 3 if \[C\]" or a low-friction CTA ("Book a free consultation at obsidianlogic.ai").
+- Add a self-segmenting CTA: "Where are you? Comment 1 if \[A\], 2 if \[B\], 3 if \[C\]" or a low-friction CTA.
 
 ## Quality Gate Requirements (Must Pass 18/35 Threshold)
 
@@ -108,7 +108,7 @@ Rate the draft 1-5 on each dimension before finalizing:
 
 ## Writing Principles
 
-- Lead with value, close with the ask. The article should be useful even if the reader never contacts Obsidian.
+- Lead with value, close with the ask. The article should be useful even if the reader never contacts you.
 - Use active verbs: accelerate, scale, streamline, simplify, deliver, transform.
 - Every claim backed by a specific metric, case study, or client quote.
 - Write at the level of a business owner, not a developer. Outcomes over implementation details.
@@ -124,6 +124,6 @@ Rate the draft 1-5 on each dimension before finalizing:
 - No "Guru" bridge phrases.
 - Never sound like a hard sell. Earn the ask through demonstrated value.
 - Every metric needs a "so what" - connect numbers to human impact.
-- Voice: Sales strategist offering value first (Scott's register with Keith's credibility).
+- Voice: Sales strategist offering value first.
 - **STRICTLY PROHIBITED**: Do not use bullet points or numbered lists in the body. Write in paragraphs.
 - **TARGET LENGTH**: 800-1200 words. Do NOT write a 150-word post. This is a full article.

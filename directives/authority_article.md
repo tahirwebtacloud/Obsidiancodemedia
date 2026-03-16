@@ -2,14 +2,13 @@
 
 ## Voice Binding
 
-This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For authority articles, use the **50% Keith / 50% Scott** tone blend:
+This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For authority articles, use the **USER'S DEFINED** tone blend:
 
-- Sound like two industry veterans writing a definitive take on a trend or misconception. Confident, data-backed, contrarian but not arrogant.
-- Keith's register: "After 20 years in cybersecurity...", "I've watched this pattern repeat across dozens of companies...", first-person experience authority.
-- Scott's register: "Proven track record", quantified claims, strategic framing, competitive positioning, market awareness.
-- Ground contrarian claims in Obsidian's real experience: government contractors, SMBs, law firms, cybersecurity.
-- Use Obsidian's "allergic to vaporware" philosophy to challenge overhyped tech trends.
-- Reference real proof points when backing claims (451% qualified leads, 5.44x ROI, $60K saved, 26hrs/week saved).
+- Sound like an industry veteran writing a definitive take on a trend or misconception. Confident, data-backed, contrarian but not arrogant.
+- Use first-person experience authority: "After [Years] in [Industry]...", "I've watched this pattern repeat across dozens of companies..."
+- Use quantified claims, strategic framing, competitive positioning, and market awareness.
+- Ground contrarian claims in real experience.
+- Reference real proof points when backing claims (qualified leads, ROI, money saved, time saved).
 - This is a LONG-FORM article (~1000 words), not a short post. Build a thorough, well-argued case.
 
 ## Human Authenticity (CRITICAL - Target AI-Detection Score: 4/10 or lower)
@@ -67,9 +66,9 @@ Examples: "Most AI Implementations Fail. Here's the Reason Nobody Talks About." 
 **1. STORY (Hook + Vulnerability) — 3-5 paragraphs:**
 
 - Open with a bold, specific contrarian claim that goes against the grain (the Identity Challenge hook).
-- Follow immediately with personal vulnerability: "I used to believe X too..." or "After building automation for 50+ clients, I can tell you..."
+- Follow immediately with personal vulnerability: "I used to believe X too..." or "After building [Product/Service] for [Number] clients, I can tell you..."
 - Unpack the widely held belief. Be fair to the other side before dismantling it.
-- Show where the logic breaks down with specific examples from Obsidian's experience.
+- Show where the logic breaks down with specific examples from real experience.
 - **MANDATORY**: Include at least one specific dollar amount, time metric, or financial calculation that sets the stakes (the Money Math element).
 
 **2. LESSON (The Pivot & Insider Truth) — 3-4 paragraphs:**
@@ -77,13 +76,13 @@ Examples: "Most AI Implementations Fail. Here's the Reason Nobody Talks About." 
 - Present your contrarian perspective with depth and evidence. This is the core argument.
 - Each paragraph should make one clear point, backed by experience, data, or a client story.
 - Use reflective discovery framing: "I used to believe X too. Then I saw what actually happened when..."
-- Include at least one specific client example (anonymized if needed) that proves your point.
+- Include at least one specific client/customer example (anonymized if needed) that proves your point.
 
 **3. ACTION (The Framework & Proof) — 2-3 paragraphs:**
 
 - Give the reader a named, actionable framework. Show them what to do instead.
-- **MANDATORY**: Include specific math/calculations demonstrating the ROI or cost of inaction (e.g., "40 copy-pastes x 2 min x 52 weeks x $200/hr = $67,600/year").
-- Keep it grounded in simplicity — Obsidian's "powerful doesn't have to mean complicated" philosophy.
+- **MANDATORY**: Include specific math/calculations demonstrating the ROI or cost of inaction.
+- Keep it grounded in simplicity.
 
 **4. YOU (Quotable Closer & CTA) — 1-2 paragraphs:**
 
@@ -122,6 +121,6 @@ Rate the draft 1-5 on each dimension before finalizing:
 - No markdown headers (##, ###). No ALL CAPS section labels in output.
 - No "Guru" bridge phrases ("Here's the truth", "Most people think X", "The secret is Y").
 - Never drop a metric without a "so what" or personal reaction.
-- Voice: Industry veterans challenging a norm (balanced Keith/Scott registers).
+- Voice: Industry veterans challenging a norm (balanced registers).
 - **STRICTLY PROHIBITED**: Do not use bullet points or numbered lists in the body.
 - **TARGET LENGTH**: 800-1200 words. Do NOT write a 150-word post. This is a full article.

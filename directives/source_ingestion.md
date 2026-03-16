@@ -1,7 +1,7 @@
 # SOP: Source Ingestion (YouTube, Blogs, News)
 
 ## Goal
-Transform external content (YouTube videos, Obsidian blogs, News articles) into structured data for LinkedIn post generation.
+Transform external content (YouTube videos, Blogs, News articles) into structured data for LinkedIn post generation.
 
 ## Inputs
 - `source_url`: URL of the video, blog, or article.

@@ -1,5 +1,85 @@
 # Changelog
 
+## [2.2.0] - 2026-02-28
+
+### Drafts + Publishing
+
+#### Added
+- Drafts persistence (Supabase primary + local JSON fallback)
+- Draft CRUD API endpoints:
+  - `GET /api/drafts`
+  - `POST /api/drafts`
+  - `PUT /api/drafts/{draft_id}`
+  - `DELETE /api/drafts/{draft_id}`
+- Draft publishing via Blotato:
+  - `POST /api/drafts/{draft_id}/publish`
+  - `POST /api/blotato/test`
+
+#### UI
+- Drafts view under History with Draft Edit modal
+- 3D “book flip” draft card design for the Drafts grid
+- Settings modal in the main header for saving/testing Blotato API key
+
+#### Fixed
+- Settings icon not opening the modal (missing modal DOM element)
+
+### Files Changed
+- `supabase_setup.sql`
+- `execution/supabase_client.py`
+- `server.py`
+- `execution/blotato_bridge.py`
+- `frontend/index.html`
+- `frontend/script.js`
+- `frontend/style.css`
+- `.env.example`
+- `README.md`
+- `ARCHITECTURE.md`
+- `SUPABASE_SETUP.md`
+- `TROUBLESHOOTING.md`
+
+---
+
+## [2.1.0] - 2026-02-28
+
+### Cloud Deployment: Modal
+
+#### Added
+- **`modal_app.py`**: Full-stack serverless deployment config for [Modal](https://modal.com)
+  - Packages FastAPI backend + static frontend into a single ASGI web endpoint
+  - Container image: Debian Slim + Python 3.11 with all `requirements.txt` deps
+  - Copies `frontend/`, `execution/`, `directives/`, `Web-Search-tool/`, `server.py`, `orchestrator.py` into `/app/`
+  - Secrets injected from Modal's encrypted store (`linkedin-post-generator`)
+  - Scale-to-zero with 300s idle scaledown, 600s request timeout, 10 concurrent inputs
+- **Modal workspace**: `tahir-70872` authenticated and linked
+- **Modal secret**: `linkedin-post-generator` created from `.env` with all API keys
+
+#### Deployment Details
+- **Live URL**: `https://tahir-70872--linkedin-post-generator-web.modal.run`
+- **Deploy command**: `$env:PYTHONIOENCODING="utf-8"; modal deploy modal_app.py`
+- **Dev mode**: `$env:PYTHONIOENCODING="utf-8"; modal serve modal_app.py`
+- **Logs**: `$env:PYTHONIOENCODING="utf-8"; modal app logs linkedin-post-generator`
+
+#### Bug Fixes During Deployment
+- Fixed `ModuleNotFoundError: No module named 'server'` — added `/app` to `sys.path` in `modal_app.py` before importing `server.py`
+- Fixed `RuntimeError` from missing `.tmp/` directory — `server.py` mounts `.tmp` as `StaticFiles` at import time; now created before import
+- Fixed Windows `charmap` encoding error during deploy — requires `$env:PYTHONIOENCODING="utf-8"` prefix
+- Updated deprecated Modal parameters: `allow_concurrent_inputs` → `@modal.concurrent`, `container_idle_timeout` → `scaledown_window`
+
+#### Documentation Updates
+- Updated `README.md` with Modal deployment section (Option B), deployment architecture diagram, env vars reference
+- Updated `ARCHITECTURE.md` with Modal deployment layer, deployment commands, key constraints, updated file structure
+- Updated `CHANGELOG.md` with this entry
+- Updated `TROUBLESHOOTING.md` with Modal-specific issues section
+
+### Files Changed
+- `modal_app.py` — New file
+- `README.md` — Added Modal deployment section
+- `ARCHITECTURE.md` — Added Modal deployment section, updated file structure
+- `CHANGELOG.md` — Added v2.1.0 entry
+- `TROUBLESHOOTING.md` — Added Modal deployment issues
+
+---
+
 ## [2.0.0] - 2026-02-28
 
 ### Major Changes

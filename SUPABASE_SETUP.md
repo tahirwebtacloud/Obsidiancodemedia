@@ -22,7 +22,7 @@ Go to your Supabase project dashboard → **Project Settings** → **API**:
 Run the SQL in `supabase_setup.sql` via **Supabase Dashboard → SQL Editor**:
 
 ```sql
--- Creates 'history' and 'user_settings' tables with proper indexes and RLS policies
+-- Creates 'history', 'user_settings', and 'drafts' tables with proper indexes and RLS policies
 -- See supabase_setup.sql for full schema
 ```
 
@@ -67,7 +67,8 @@ Navigate to `http://localhost:9999` and sign in with Google.
 All user data is isolated by `user_id`:
 
 - **History**: Each generation run is saved to Supabase `history` table with `user_id` column
-- **Settings**: Profile URL and preferences stored in `user_settings` table per user
+- **Settings**: Profile URL, preferences, and Blotato key stored in `user_settings` table per user
+- **Drafts**: Drafts are stored in the `drafts` table per user and include caption, topic, type, asset_url, status, and publish metadata
 - **Surveillance**: Scraped LinkedIn data stored in `.tmp/surveillance_data_{uid}.json`
 - **Leads**: CRM scan results stored in `.tmp/leads_data_{uid}.json`
 
@@ -77,6 +78,7 @@ If Supabase is unreachable, the app falls back to local JSON files:
 
 - `.tmp/history_{uid}.json` — per-user history cache
 - `.local_settings.json` — per-user settings cache
+- `.tmp/drafts_{uid}.json` — per-user drafts cache (fallback when Supabase is unavailable)
 - `history.json` — legacy shared history (for uid="default" only)
 
 ## Troubleshooting

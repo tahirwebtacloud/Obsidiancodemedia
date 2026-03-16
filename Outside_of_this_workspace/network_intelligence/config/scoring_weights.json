@@ -1,0 +1,216 @@
+{
+    "dimensions": {
+        "role_fit": {
+            "max_points": 250,
+            "weight_pct": 25,
+            "sub_signals": {
+                "seniority_tier": {
+                    "max": 100,
+                    "values": {
+                        "C_SUITE": 100,
+                        "VP": 80,
+                        "DIRECTOR": 60,
+                        "MANAGER": 40,
+                        "INDIVIDUAL": 20,
+                        "OTHER": 0
+                    }
+                },
+                "industry_match": {
+                    "max": 80,
+                    "primary_match": 80,
+                    "adjacent_match": 40,
+                    "no_match": 0
+                },
+                "product_segment_match": {
+                    "max": 70,
+                    "full_match": 70,
+                    "partial_match": 35,
+                    "no_match": 0
+                }
+            }
+        },
+        "relationship_strength": {
+            "max_points": 250,
+            "weight_pct": 25,
+            "sub_signals": {
+                "message_recency": {
+                    "max": 60,
+                    "thresholds_days": {
+                        "30": 60,
+                        "90": 45,
+                        "180": 30,
+                        "365": 15,
+                        "999999": 5
+                    },
+                    "no_messages": 0
+                },
+                "message_frequency": {
+                    "max": 50,
+                    "thresholds_count": {
+                        "10": 50,
+                        "5": 35,
+                        "2": 20,
+                        "1": 10
+                    },
+                    "no_messages": 0
+                },
+                "message_direction": {
+                    "max": 40,
+                    "they_initiated": 40,
+                    "mutual": 30,
+                    "you_initiated": 20,
+                    "no_messages": 0
+                },
+                "connection_tenure": {
+                    "max": 30,
+                    "thresholds_days": {
+                        "1095": 30,
+                        "365": 20,
+                        "0": 10
+                    }
+                },
+                "inbound_invite": {
+                    "max": 40,
+                    "inbound_with_message": 40,
+                    "inbound_no_message": 20,
+                    "outbound": 10,
+                    "unknown": 0
+                },
+                "endorsement_reciprocity": {
+                    "max": 30,
+                    "mutual": 30,
+                    "they_endorsed_you": 20,
+                    "you_endorsed_them": 10,
+                    "none": 0
+                }
+            }
+        },
+        "advocacy_trust": {
+            "max_points": 200,
+            "weight_pct": 20,
+            "sub_signals": {
+                "recommendation_received": {
+                    "max": 80,
+                    "visible": 80
+                },
+                "endorsement_received": {
+                    "max": 40,
+                    "accepted": 40
+                },
+                "endorsement_skill_overlap": {
+                    "max": 30,
+                    "relevant_skill": 30,
+                    "other_skill": 15
+                },
+                "recommendation_given": {
+                    "max": 20,
+                    "given": 20
+                },
+                "endorsement_given": {
+                    "max": 15,
+                    "given": 15
+                },
+                "follows_you": {
+                    "max": 15,
+                    "active": 15
+                }
+            }
+        },
+        "engagement_signals": {
+            "max_points": 150,
+            "weight_pct": 15,
+            "sub_signals": {
+                "intent_keywords": {
+                    "max": 50,
+                    "high_intent": 50,
+                    "medium_intent": 30,
+                    "low_intent": 10
+                },
+                "your_reactions_to_them": {
+                    "max": 30,
+                    "thresholds_count": {
+                        "3": 30,
+                        "1": 15
+                    }
+                },
+                "your_comments_on_them": {
+                    "max": 40,
+                    "thresholds_count": {
+                        "3": 40,
+                        "1": 20
+                    }
+                },
+                "they_reacted_to_you": {
+                    "max": 30,
+                    "reacted": 30
+                }
+            }
+        },
+        "company_intelligence": {
+            "max_points": 100,
+            "weight_pct": 10,
+            "sub_signals": {
+                "abm_cluster_size": {
+                    "max": 40,
+                    "thresholds_count": {
+                        "5": 40,
+                        "3": 25,
+                        "2": 10
+                    }
+                },
+                "company_followed": {
+                    "max": 20,
+                    "followed": 20
+                },
+                "company_in_searches": {
+                    "max": 20,
+                    "found": 20
+                },
+                "company_size_match": {
+                    "max": 20,
+                    "target_size": 20
+                }
+            }
+        },
+        "timing_opportunity": {
+            "max_points": 50,
+            "weight_pct": 5,
+            "sub_signals": {
+                "connection_recency": {
+                    "max": 20,
+                    "thresholds_days": {
+                        "30": 20,
+                        "90": 15,
+                        "180": 10
+                    }
+                },
+                "unreplied_inbound": {
+                    "max": 30,
+                    "thresholds_days": {
+                        "30": 30,
+                        "90": 20,
+                        "999999": 10
+                    }
+                }
+            }
+        }
+    },
+    "tiers": {
+        "S": {"min_score": 700, "label": "Champion", "action": "Personal outreach, referral ask, co-creation"},
+        "A": {"min_score": 500, "label": "Hot Prospect", "action": "Priority DM, Phase 1 outreach"},
+        "B": {"min_score": 300, "label": "Warm Lead", "action": "Content targeting, Phase 2 nurture"},
+        "C": {"min_score": 100, "label": "Aware", "action": "Stay visible via content, ABM play"},
+        "D": {"min_score": 0, "label": "Unknown", "action": "Background; exclude from outreach"}
+    },
+    "intent_keywords": {
+        "high": ["price", "pricing", "cost", "quote", "proposal", "budget", "contract", "purchase", "buy", "invest"],
+        "medium": ["help", "consulting", "audit", "strategy", "call", "talk", "services", "rate", "meeting", "demo"],
+        "low": ["interesting", "connect", "network", "learn", "follow", "share", "thoughts", "opinion"]
+    },
+    "relevant_skills": [
+        "cybersecurity", "information security", "cissp", "ciso", "infosec",
+        "artificial intelligence", "ai", "machine learning", "automation",
+        "risk management", "compliance", "cloud security", "data protection",
+        "project management", "program management", "operations"
+    ]
+}

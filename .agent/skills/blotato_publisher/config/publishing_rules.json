@@ -1,0 +1,56 @@
+{
+  "scheduling": {
+    "optimal_days": ["Tuesday", "Wednesday"],
+    "optimal_time_et": "16:30",
+    "timezone": "America/New_York",
+    "fallback_day": "Thursday",
+    "fallback_time_et": "16:00",
+    "blackout_days": ["Saturday", "Sunday"],
+    "min_hours_between_posts": 48,
+    "max_posts_per_week": 3
+  },
+  "quality_gate": {
+    "min_score": 18,
+    "required_elements": {
+      "must_have_one": ["personal_story", "identity_challenge", "money_promise", "visual_asset"],
+      "hook_max_words": 12,
+      "must_have_cta": true,
+      "max_character_count": 3000,
+      "min_character_count": 400
+    },
+    "scoring_rubric": {
+      "hook_power": {"max": 5, "description": "Identity challenge, dollar specificity, or provocative question"},
+      "vulnerability": {"max": 5, "description": "Personal story, confession, or real experience"},
+      "framework": {"max": 5, "description": "Named framework with numbered steps"},
+      "math_proof": {"max": 5, "description": "Specific dollar calculation or data point"},
+      "cta": {"max": 5, "description": "Open question, DM magnet, or repost nudge"},
+      "visual": {"max": 5, "description": "Title card, photorealistic image, or carousel"},
+      "timing": {"max": 5, "description": "Optimal day/time, no conflicts on calendar"}
+    }
+  },
+  "media": {
+    "linkedin_image_ratio": "1:1",
+    "preferred_size": 1080,
+    "supported_formats": ["png", "jpg", "webp"],
+    "max_file_size_mb": 200,
+    "upload_methods": [
+      "blotato_upload",
+      "public_url",
+      "imgbb",
+      "cloudinary"
+    ]
+  },
+  "platforms": {
+    "primary": "linkedin",
+    "secondary": ["twitter", "threads"]
+  },
+  "content_themes": {
+    "description": "Weekly/monthly theme tracking to ensure consistency",
+    "current_theme": null,
+    "theme_history": []
+  },
+  "hashtags": {
+    "default": ["#AI", "#Productivity", "#Automation", "#ObsidianLogicAI"],
+    "max_hashtags": 5
+  }
+}

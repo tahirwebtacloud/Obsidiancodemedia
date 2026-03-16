@@ -127,11 +127,24 @@
 - **Modal Actions Footer (`.modal-actions`, `.modal-tabs`)**: Decoupled flexbox CSS classes to push the Repurpose Post button to the right and tab buttons to the left.
 - **Confirm Handler**: Aggregates visual context from all selected items
 
+#### Drafts UI (`frontend/index.html`)
+
+- **Entry point**: `History` → `Drafts` sub-tab
+- **Draft list**: Grid of 3D “book” cards
+  - Structure: `.draft-book` with `.cover` + `.inner` panels
+  - Behavior: hover animation flips the cover to reveal actions
+- **Draft Edit modal**: Edit caption/topic, delete draft, publish/schedule
+
+#### Settings Modal (`frontend/index.html`)
+
+- **Entry point**: Settings icon in the main header
+- **Purpose**: Configure Blotato API key, save it to user settings, and test connection
+
 ### Backend Components
 
 #### server.py
 
-FastAPI application with 10 endpoints, SSE streaming, and validation error handling:
+FastAPI application with 12 endpoints, SSE streaming, and validation error handling:
 
 **Imports & Setup:**
 
@@ -192,6 +205,12 @@ class GenerateRequest(BaseModel):
 @app.post("/api/regenerate-caption") # Regenerate caption
 @app.post("/api/draft")             # Quick in-situ drafting
 @app.get("/api/history")             # Generation history (max 100)
+@app.get("/api/drafts")              # List drafts
+@app.post("/api/drafts")             # Create draft
+@app.put("/api/drafts/{draft_id}")    # Update draft
+@app.delete("/api/drafts/{draft_id}") # Delete draft
+@app.post("/api/drafts/{draft_id}/publish") # Publish/schedule draft via Blotato
+@app.post("/api/blotato/test")       # Test Blotato API key and fetch account
 @app.post("/api/research/viral")     # Viral research via Apify
 @app.post("/api/research/competitor") # Competitor scraping via Apify
 @app.post("/api/research/youtube")   # YouTube analysis (fast=yt-dlp, deep=Apify)
@@ -602,29 +621,101 @@ Error → completeSimpleProgress('error') → stepper shows red, hides after 150
 
 **Solution**: Migrated to Supabase PostgreSQL with service role key authentication (never expires). All user data (history, settings, surveillance) is now properly isolated per user ID in Supabase tables with local JSON fallbacks for offline resilience.
 
+## Cloud Deployment (Modal)
+
+The application is deployed on [Modal](https://modal.com) as a serverless full-stack web app.
+
+**Live URL**: `https://tahir-70872--linkedin-post-generator-web.modal.run`
+
+### Deployment Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    MODAL CLOUD (modal_app.py)                    │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │  Container: Debian Slim + Python 3.11                     │  │
+│  │  Image: pip_install(requirements) + add_local_dir/file    │  │
+│  │                                                           │  │
+│  │  /app/                                                    │  │
+│  │  ├── server.py        (FastAPI app, ASGI entrypoint)      │  │
+│  │  ├── orchestrator.py  (Pipeline orchestrator)             │  │
+│  │  ├── frontend/        (Static HTML/CSS/JS)                │  │
+│  │  ├── execution/       (Python scripts)                    │  │
+│  │  ├── directives/      (LLM system prompts)                │  │
+│  │  └── .tmp/            (Runtime artifacts, ephemeral)      │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  Secrets: modal.Secret.from_name("linkedin-post-generator")     │
+│  Concurrency: 10 concurrent inputs per container                │
+│  Timeout: 600s per request                                      │
+│  Scaledown: 300s idle → container scales to zero                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### How modal_app.py Works
+
+1. **Image Build**: Installs Python deps via `pip_install()`, copies project dirs/files via `add_local_dir()` / `add_local_file()` into `/app/`
+2. **Runtime (`web()` function)**: Sets `cwd` to `/app`, adds `/app` and `/app/execution` to `sys.path`, creates `.tmp/` dir, then imports and returns the FastAPI `app` from `server.py`
+3. **Secrets**: All env vars from `.env` are stored in Modal's encrypted secret store (`linkedin-post-generator`), injected at runtime
+4. **ASGI**: The `@modal.asgi_app()` decorator exposes the FastAPI app directly via Modal's HTTPS edge
+
+### Deployment Commands
+
+```powershell
+# Deploy (snapshot current code to production URL)
+$env:PYTHONIOENCODING="utf-8"; modal deploy modal_app.py
+
+# Dev mode (hot-reload with temporary URL)
+$env:PYTHONIOENCODING="utf-8"; modal serve modal_app.py
+
+# View logs
+$env:PYTHONIOENCODING="utf-8"; modal app logs linkedin-post-generator
+
+# Update secrets after .env changes
+modal secret create linkedin-post-generator --from-dotenv .env --force
+```
+
+### Key Constraints
+
+- **Ephemeral filesystem**: `.tmp/` is container-local and resets on cold start. Generated images/files are lost between container restarts.
+- **Snapshot-based deploys**: Code changes require `modal deploy` to go live.
+- **Cold starts**: ~10-15s on first request after idle period.
+- **Supabase redirect**: Modal URL must be added to Supabase Auth allowed redirects.
+
 ## Environment Variables
+
+See `.env.example` for the full list. Key variables:
 
 ```bash
 GOOGLE_GEMINI_API_KEY=your_gemini_api_key
 GEMINI_TEXT_MODEL=gemini-3-pro-preview
-GEMINI_IMAGE_MODEL=gemini-3-pro-preview
+GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview
+APIFY_API_KEY=your_apify_api_key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+BASEROW_TOKEN=your_baserow_token
+JINA_API_KEY=your_jina_api_key
 ```
 
 ## Dependencies
 
-### Python
+### Python (requirements.txt)
 
 - fastapi: Web framework
-- uvicorn: ASGI server
+- uvicorn: ASGI server (local only)
 - python-dotenv: Environment variables
 - google-genai: Gemini API
+- Pillow: Image processing
+- apify-client: LinkedIn/YouTube scraping
 - yt-dlp: YouTube download
+- supabase: Database client
 - requests: HTTP requests
+- beautifulsoup4: HTML parsing
 
-### Node.js (carousel_engine)
+### Deployment
 
-- canvas: Image generation
-- sharp: Image processing
+- modal: Serverless cloud deployment platform
 
 ## File Structure
 
@@ -632,34 +723,54 @@ GEMINI_IMAGE_MODEL=gemini-3-pro-preview
 /
 ├── README.md
 ├── ARCHITECTURE.md
-├── ROUTING.md
-├── WORKFLOWS.md
-├── server.py
-├── orchestrator.py
+├── CHANGELOG.md
+├── TROUBLESHOOTING.md
+├── SUPABASE_SETUP.md
+├── modal_app.py              ← Modal deployment config
+├── server.py                 ← FastAPI backend (port 9999 local)
+├── orchestrator.py           ← Pipeline orchestrator
+├── requirements.txt
+├── .env.example
 ├── frontend/
 │   ├── index.html
 │   ├── script.js
-│   └── style.css
+│   ├── style.css
+│   ├── auth.js               ← Supabase Auth (Google OAuth)
+│   ├── logo.png
+│   └── favicon.png
 ├── execution/
 │   ├── generate_assets.py
 │   ├── generate_carousel.py
 │   ├── viral_research_apify.py
 │   ├── local_youtube.py
-│   └── rank_and_analyze.py
+│   ├── apify_youtube.py
+│   ├── rank_and_analyze.py
+│   ├── regenerate_image.py
+│   ├── regenerate_caption.py
+│   ├── lead_scraper.py
+│   ├── surveillance_scraper.py
+│   ├── supabase_client.py
+│   ├── baserow_logger.py
+│   ├── cost_tracker.py
+│   ├── jina_search.py
+│   ├── ingest_source.py
+│   └── linkedin_utils.py
 ├── directives/
 │   ├── educational_caption.md
 │   ├── storytelling_caption.md
 │   ├── authority_caption.md
 │   ├── promotional_caption.md
-│   └── image_prompt_design.md
-├── carousel_engine/
-│   └── ...
-└── .tmp/
+│   ├── image_prompt_design.md
+│   ├── brand_knowledge.md
+│   ├── color_palettes.json
+│   └── style_types/
+├── Web-Search-tool/
+│   └── web_search.py
+└── .tmp/                      ← Runtime artifacts (ephemeral on Modal)
     ├── source_content_*.txt
     ├── visual_context_*.json
     ├── youtube_research.json
-    ├── viral_research.json
-    ├── analysis.json
+    ├── viral_trends.json
     ├── final_plan.json
-    └── carousel_layout.json
+    └── generated_image_*.png
 ```

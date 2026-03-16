@@ -1,0 +1,30 @@
+{
+    "clay": {
+        "enabled": false,
+        "api_key_env": "CLAY_API_KEY",
+        "base_url": "https://api.clay.com/v1",
+        "max_records_per_run": 100,
+        "enrichment_fields": ["email", "phone", "company_size", "company_revenue", "company_industry"],
+        "tier_filter": ["S", "A"],
+        "rate_limit_per_minute": 30
+    },
+    "apify": {
+        "enabled": false,
+        "api_key_env": "APIFY_API_TOKEN",
+        "profile_scraper_actor": "anchor/linkedin-profile-scraper",
+        "company_scraper_actor": "anchor/linkedin-company-scraper",
+        "rate_limit_per_hour": 50,
+        "max_concurrent": 5
+    },
+    "export_formats": {
+        "clay_csv": {
+            "enabled": true,
+            "columns": ["First Name", "Last Name", "Title", "Company", "LinkedIn URL", "Email", "Score", "Tier", "Seniority", "Industry", "Relationship Type", "Segment", "Last Interaction", "Recommended Action"]
+        },
+        "json_db": {
+            "enabled": true,
+            "include_interactions": true,
+            "include_signals": true
+        }
+    }
+}

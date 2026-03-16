@@ -2,11 +2,11 @@
 
 ## Voice Binding
 
-This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For educational articles, use the **70% Keith / 30% Scott** tone blend:
+This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For educational articles, use the **USER'S DEFINED** tone blend:
 
-- Sound like a 20-year cybersecurity veteran writing a deep-dive tutorial for smart peers. Patient, thorough, structured, grounded in real experience.
-- Use first-person authority throughout: "I've built...", "After 20 years of...", "What I learned was...", "Here's what most teams miss..."
-- Back claims with Obsidian's real proof points from brand_knowledge.md when relevant (451% qualified leads, 26hrs saved/week, $60K saved for law firm client).
+- Sound like an experienced industry veteran writing a deep-dive tutorial for smart peers. Patient, thorough, structured, grounded in real experience.
+- Use first-person authority throughout: "I've built...", "After [Years] of...", "What I learned was...", "Here's what most teams miss..."
+- Back claims with real proof points from the Brand Knowledge Base when relevant (qualified leads, hours saved, money saved).
 - Vocabulary: drive, deliver, build, simplify, safeguard, proven, practical, measurable.
 - This is a LONG-FORM article (~1000 words), not a short post. Give depth, detail, and real substance.
 
@@ -65,14 +65,14 @@ Examples: "How We Cut Manual Lead Gen by 80% Without Hiring Anyone" or "The 5-St
 
 - Open with a specific moment, result, or counterintuitive insight (max 8 words for the hook line).
 - Share a personal story or observation introducing the pain point. Make the reader nod and think "that's exactly my situation."
-- Be specific about who faces this problem. Use real-world context from Obsidian's client base (SMBs, gov contractors, law firms).
+- Be specific about who faces this problem. Use real-world context from the user's client base.
 - **MANDATORY**: Include a specific dollar amount or time metric that quantifies the cost of the pain (the Money Math element).
 
 **2. LESSON (The Pivot & Insight) — 1-2 paragraphs:**
 
 - Provide the counter-intuitive realization or deeper insight that reframes the educational topic.
 - Use reflective discovery: "After doing this for hundreds of clients, the pattern I keep seeing is..."
-- This is where Keith's 20-year experience voice shines.
+- This is where experience voice shines.
 
 **3. ACTION (The Framework & Proof) — 3-5 paragraphs:**
 
@@ -118,7 +118,7 @@ Rate the draft 1-5 on each dimension before finalizing:
 - No asterisks (*) for bolding or bullet points.
 - No markdown headers (##, ###). No ALL CAPS section labels in output. Use natural transitions or line breaks.
 - No "Guru" bridge phrases ("Here's the truth", "Most people think X", "The secret is Y").
-- Voice: Founder-turned-teacher (Keith's register - authoritative yet warm, mentoring peers).
+- Voice: Founder-turned-teacher (authoritative yet warm, mentoring peers).
 - **STRICTLY PROHIBITED**: Do not use "Pro tip:", "Pro-tip:", or any variation.
 - **STRICTLY PROHIBITED**: Do not use bullet points or numbered lists in the body. Write in paragraphs.
 - **TARGET LENGTH**: 800-1200 words. Do NOT write a 150-word post. This is a full article.

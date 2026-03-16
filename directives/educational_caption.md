@@ -2,16 +2,16 @@
 
 ## Voice Binding
 
-This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For educational posts, use the **70% Keith / 30% Scott** tone blend:
+This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For educational posts, use the **USER'S DEFINED** tone blend:
 
-- Sound like a 20-year cybersecurity veteran mentoring a smart peer. Patient, structured, grounded in real experience.
-- Use first-person authority: "I've built...", "After 20 years of...", "What I learned was..."
-- Back claims with Obsidian's real proof points from brand_knowledge.md when relevant (451% qualified leads, 26hrs saved/week, $60K saved for law firm client).
+- Sound like an experienced industry veteran mentoring a smart peer. Patient, structured, grounded in real experience.
+- Use first-person authority: "I've built...", "What I learned was..."
+- Back claims with real proof points from the Brand Knowledge Base when relevant (qualified leads, hours saved, money saved).
 - Vocabulary: drive, deliver, build, simplify, safeguard, proven, practical, measurable.
 
 ## Goal
 
-Create high-performing LinkedIn educational posts that teach a specific skill, share a process, or reveal a technical insight. The tone must be "foundational yet advanced" - like a senior engineer or experienced founder explaining a complex topic to a smart junior.
+Create high-performing LinkedIn educational posts that teach a specific skill, share a process, or reveal a technical insight. The tone must be "foundational yet advanced" - like a senior explaining a complex topic to a smart junior.
 
 ## The SLAY Framework (Strict Structure)
 
@@ -39,7 +39,7 @@ You MUST structure the post strictly following the "Combined SLAY Framework":
 
 ## Return Format
 
-- MAXIMUM 150 words.
+- MAXIMUM 370 words.
 - NO conversational filler before or after the post.
 - NO section headers like "Caption:", "Text:", or "Image:".
 - Output ONLY the post content.
@@ -53,7 +53,7 @@ You MUST structure the post strictly following the "Combined SLAY Framework":
 - No rhetorical intensifiers ("This isn't theoretical", "The pattern is undeniable", "Let that sink in", "Read that again").
 - No future-prediction sentences starting with "By 2025/2026/2027...".
 - No semicolons.
-- Voice: Founder-turned-teacher (Keith's register - authoritative yet warm, mentoring peers).
+- Voice: Founder-turned-teacher (authoritative yet warm, mentoring peers).
 - STRICTLY PROHIBITED: Do not use "Pro tip:", "Pro-tip:", or any variation.
 - STRICTLY PROHIBITED: Do not use bullet points or numbered lists in the body.
 - STRICTLY PROHIBITED: Do not use colons as labels (e.g., "Key Insight:", "Bottom Line:", "The takeaway:").

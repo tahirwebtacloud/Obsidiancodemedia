@@ -2268,6 +2268,458 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ============================================
+    // DRAFTS SYSTEM
+    // ============================================
+
+    const saveDraftBtn = document.getElementById('save-draft-btn');
+    const repurposeSaveDraftBtn = document.getElementById('repurpose-save-draft-btn');
+    const refreshDraftsBtn = document.getElementById('refresh-drafts-btn');
+    const draftsGrid = document.getElementById('drafts-grid');
+    const draftsEmptyState = document.getElementById('drafts-empty-state');
+    const draftsCountBadge = document.getElementById('drafts-count-badge');
+    const draftsView = document.getElementById('drafts-view');
+    const draftEditModal = document.getElementById('draft-edit-modal');
+    const closeDraftEditBtn = document.getElementById('close-draft-edit-btn');
+    const draftEditSaveBtn = document.getElementById('draft-edit-save-btn');
+    const draftEditDeleteBtn = document.getElementById('draft-edit-delete-btn');
+    const draftEditRepurposeBtn = document.getElementById('draft-edit-repurpose-btn');
+
+    let _currentDraftFilter = 'all';
+
+    async function saveDraft(resultData) {
+        if (!resultData) return;
+        const btn = saveDraftBtn || repurposeSaveDraftBtn;
+        const origText = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader" class="btn-icon" style="animation: spin 1s linear infinite;"></i> Saving...'; }
+
+        try {
+            const res = await fetch('/api/drafts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-User-ID': window.appUserId || 'default' },
+                body: JSON.stringify({ post_data: resultData, user_id: window.appUserId || null })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                if (btn) btn.innerHTML = '<i data-lucide="check" class="btn-icon"></i> Saved!';
+                addSystemLog('Draft saved successfully.', 'success');
+                setTimeout(() => { if (btn) { btn.innerHTML = origText; btn.disabled = false; } if (window.lucide) lucide.createIcons(); }, 2000);
+            } else {
+                throw new Error(data.error || 'Failed to save draft');
+            }
+        } catch (err) {
+            console.error('Save draft error:', err);
+            addSystemLog(`Draft save failed: ${err.message}`, 'error');
+            if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', () => {
+            if (currentResult) saveDraft(currentResult);
+        });
+    }
+
+    if (repurposeSaveDraftBtn) {
+        repurposeSaveDraftBtn.addEventListener('click', () => {
+            const repurposeSourcePreview = document.getElementById('repurpose-source-preview');
+            const draftData = {
+                caption: repurposeSourcePreview ? repurposeSourcePreview.value : '',
+                type: document.getElementById('repurpose-type') ? document.getElementById('repurpose-type').value : 'text',
+                purpose: document.getElementById('repurpose-purpose') ? document.getElementById('repurpose-purpose').value : '',
+                topic: document.getElementById('repurpose-topic-input') ? document.getElementById('repurpose-topic-input').value : '',
+            };
+            saveDraft(draftData);
+            const repurposeModal = document.getElementById('repurpose-modal');
+            if (repurposeModal) repurposeModal.classList.add('hidden');
+        });
+    }
+
+    async function loadDrafts(statusFilter) {
+        if (statusFilter !== undefined) _currentDraftFilter = statusFilter;
+        const filter = _currentDraftFilter === 'all' ? '' : `?status=${_currentDraftFilter}`;
+        
+        try {
+            const res = await fetch(`/api/drafts${filter}`, {
+                headers: { 'X-User-ID': window.appUserId || 'default' }
+            });
+            const data = await res.json();
+            const drafts = data.drafts || [];
+            
+            if (draftsCountBadge) draftsCountBadge.textContent = drafts.length > 0 ? `(${drafts.length})` : '';
+            
+            if (!draftsGrid) return;
+            draftsGrid.innerHTML = '';
+
+            if (drafts.length === 0) {
+                if (draftsEmptyState) draftsEmptyState.style.display = 'block';
+                return;
+            }
+            if (draftsEmptyState) draftsEmptyState.style.display = 'none';
+
+            drafts.forEach(draft => {
+                const card = createDraftCard(draft);
+                draftsGrid.appendChild(card);
+            });
+
+            if (window.lucide) lucide.createIcons();
+        } catch (err) {
+            console.error('Load drafts error:', err);
+            addSystemLog(`Failed to load drafts: ${err.message}`, 'error');
+        }
+    }
+
+    function createDraftCard(draft) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'draft-book-wrapper';
+        wrapper.setAttribute('role', 'listitem');
+
+        const caption = draft.caption || '';
+        const statusClass = `status-${draft.status || 'draft'}`;
+        const statusLabel = (draft.status || 'draft').charAt(0).toUpperCase() + (draft.status || 'draft').slice(1);
+        const typeLabel = (draft.type || 'text').toUpperCase();
+        const topicLabel = (draft.topic || 'Untitled').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const captionSafe = caption.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        const dateStr = draft.created_at ? new Date(draft.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+
+        const thumbHtml = draft.asset_url
+            ? `<img class="draft-book-thumb" src="${draft.asset_url}" alt="Draft visual" onerror="this.style.display='none'">`
+            : `<div class="draft-book-thumb-placeholder"><i data-lucide="file-text" style="width:22px;height:22px;color:rgba(249,199,79,0.35);"></i></div>`;
+
+        wrapper.innerHTML = `
+            <div class="draft-book">
+                <div class="cover">
+                    ${thumbHtml}
+                    <div class="draft-book-topic">${topicLabel}</div>
+                    <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:center;">
+                        <span class="draft-status-badge ${statusClass}">${statusLabel}</span>
+                        <span class="draft-type-badge">${typeLabel}</span>
+                    </div>
+                    <div class="draft-book-date">${dateStr}</div>
+                </div>
+                <div class="inner">
+                    <div class="draft-book-caption">${captionSafe}</div>
+                    <div class="draft-book-actions">
+                        <button class="draft-edit-book-btn" title="Edit">
+                            <i data-lucide="edit-3"></i> Edit
+                        </button>
+                        <button class="draft-delete-book-btn" title="Delete">
+                            <i data-lucide="trash-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        wrapper.querySelector('.draft-edit-book-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            openDraftEditModal(draft);
+        });
+
+        wrapper.querySelector('.draft-delete-book-btn').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!confirm('Delete this draft?')) return;
+            await deleteDraft(draft.id);
+        });
+
+        wrapper.querySelector('.draft-book').addEventListener('click', () => openDraftEditModal(draft));
+
+        return wrapper;
+    }
+
+    function openDraftEditModal(draft) {
+        if (!draftEditModal) return;
+        document.getElementById('draft-edit-id').value = draft.id;
+        document.getElementById('draft-edit-caption').value = draft.caption || '';
+        document.getElementById('draft-edit-topic').textContent = draft.topic || 'Untitled';
+
+        const statusBadge = document.getElementById('draft-edit-status-badge');
+        if (statusBadge) {
+            const s = draft.status || 'draft';
+            statusBadge.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+            statusBadge.className = `draft-status-badge status-${s}`;
+        }
+
+        const imgPreview = document.getElementById('draft-edit-image-preview');
+        const imgEl = document.getElementById('draft-edit-image');
+        if (draft.asset_url && imgPreview && imgEl) {
+            imgEl.src = draft.asset_url;
+            imgPreview.style.display = 'block';
+        } else if (imgPreview) {
+            imgPreview.style.display = 'none';
+        }
+
+        draftEditModal.classList.remove('hidden');
+        draftEditModal._currentDraft = draft;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    if (closeDraftEditBtn) {
+        closeDraftEditBtn.addEventListener('click', () => draftEditModal.classList.add('hidden'));
+    }
+
+    if (draftEditSaveBtn) {
+        draftEditSaveBtn.addEventListener('click', async () => {
+            const draftId = document.getElementById('draft-edit-id').value;
+            const newCaption = document.getElementById('draft-edit-caption').value;
+            draftEditSaveBtn.disabled = true;
+            draftEditSaveBtn.textContent = 'Saving...';
+
+            try {
+                const res = await fetch(`/api/drafts/${draftId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-User-ID': window.appUserId || 'default' },
+                    body: JSON.stringify({ data: { caption: newCaption } })
+                });
+                if (res.ok) {
+                    addSystemLog('Draft updated.', 'success');
+                    draftEditModal.classList.add('hidden');
+                    loadDrafts();
+                } else {
+                    const err = await res.json();
+                    addSystemLog(`Draft update failed: ${err.error}`, 'error');
+                }
+            } catch (err) {
+                addSystemLog(`Draft update error: ${err.message}`, 'error');
+            }
+            draftEditSaveBtn.disabled = false;
+            draftEditSaveBtn.innerHTML = '<i data-lucide="check" class="btn-icon"></i> Update Draft';
+            if (window.lucide) lucide.createIcons();
+        });
+    }
+
+    if (draftEditDeleteBtn) {
+        draftEditDeleteBtn.addEventListener('click', async () => {
+            const draftId = document.getElementById('draft-edit-id').value;
+            if (!confirm('Delete this draft permanently?')) return;
+            await deleteDraft(draftId);
+            draftEditModal.classList.add('hidden');
+        });
+    }
+
+    if (draftEditRepurposeBtn) {
+        draftEditRepurposeBtn.addEventListener('click', () => {
+            const draft = draftEditModal._currentDraft;
+            if (draft && typeof openRepurposeModal === 'function') {
+                openRepurposeModal(draft.caption || '', 'linkedin', [draft.source_data || draft]);
+                draftEditModal.classList.add('hidden');
+            }
+        });
+    }
+
+    async function deleteDraft(draftId) {
+        try {
+            const res = await fetch(`/api/drafts/${draftId}`, {
+                method: 'DELETE',
+                headers: { 'X-User-ID': window.appUserId || 'default' }
+            });
+            if (res.ok) {
+                addSystemLog('Draft deleted.', 'success');
+                loadDrafts();
+            } else {
+                addSystemLog('Failed to delete draft.', 'error');
+            }
+        } catch (err) {
+            addSystemLog(`Delete error: ${err.message}`, 'error');
+        }
+    }
+
+    if (refreshDraftsBtn) {
+        refreshDraftsBtn.addEventListener('click', () => loadDrafts());
+    }
+
+    // Drafts filter pills
+    const filterPills = document.querySelectorAll('.draft-filter-pill');
+    filterPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            filterPills.forEach(p => {
+                p.style.background = 'transparent';
+                p.style.color = 'rgba(255,255,255,0.5)';
+                p.style.borderColor = 'rgba(255,255,255,0.1)';
+                p.classList.remove('active');
+            });
+            pill.style.background = 'rgba(249,199,79,0.15)';
+            pill.style.color = 'var(--brand-primary)';
+            pill.style.borderColor = 'rgba(255,255,255,0.15)';
+            pill.classList.add('active');
+            loadDrafts(pill.dataset.filter);
+        });
+    });
+
+    // Wire Drafts sub-tab switching to show/hide drafts view
+    const dashboardSubTabBtns = document.querySelectorAll('#tab-dashboard .sub-tab-btn');
+    dashboardSubTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.subTab;
+            // Toggle sub-tab button active state
+            dashboardSubTabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Toggle sidebar sub-panes
+            document.querySelectorAll('#tab-dashboard .sub-tab-pane').forEach(pane => {
+                pane.style.display = 'none';
+                pane.classList.remove('active');
+            });
+            const targetPane = document.getElementById(`sub-tab-${target}`);
+            if (targetPane) {
+                targetPane.style.display = 'flex';
+                targetPane.classList.add('active');
+            }
+            // Toggle main content views
+            const survView = document.getElementById('surveillance-view');
+            const dView = document.getElementById('drafts-view');
+            if (target === 'drafts') {
+                if (survView) survView.classList.add('hidden');
+                if (dView) { dView.classList.remove('hidden'); loadDrafts(); }
+            } else {
+                if (dView) dView.classList.add('hidden');
+                if (survView) survView.classList.remove('hidden');
+            }
+        });
+    });
+
+    // ============================================
+    // SETTINGS MODAL + BLOTATO CONNECTION
+    // ============================================
+
+    const settingsModal = document.getElementById('settings-modal');
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const blotatoKeyInput = document.getElementById('settings-blotato-key');
+    const saveBlotatoBtn = document.getElementById('settings-save-blotato-btn');
+    const testBlotatoBtn = document.getElementById('settings-test-blotato-btn');
+    const blotatoStatus = document.getElementById('settings-blotato-status');
+    const blotatoAccountDiv = document.getElementById('settings-blotato-account');
+    const blotatoAccountName = document.getElementById('settings-blotato-account-name');
+
+    if (openSettingsBtn) {
+        openSettingsBtn.addEventListener('click', async () => {
+            if (settingsModal) settingsModal.classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+            // Load existing key
+            try {
+                const res = await fetch('/api/settings', { headers: { 'X-User-ID': window.appUserId || 'default' } });
+                const data = await res.json();
+                if (blotatoKeyInput && data.blotatoApiKey) {
+                    blotatoKeyInput.value = data.blotatoApiKey;
+                }
+            } catch (e) { /* ignore */ }
+        });
+    }
+
+    if (closeSettingsBtn) {
+        closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+    }
+
+    if (saveBlotatoBtn) {
+        saveBlotatoBtn.addEventListener('click', async () => {
+            const key = blotatoKeyInput ? blotatoKeyInput.value.trim() : '';
+            saveBlotatoBtn.disabled = true;
+            saveBlotatoBtn.textContent = 'Saving...';
+            try {
+                await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-User-ID': window.appUserId || 'default' },
+                    body: JSON.stringify({ blotatoApiKey: key })
+                });
+                saveBlotatoBtn.textContent = 'Saved!';
+                addSystemLog('Blotato API key saved.', 'success');
+                setTimeout(() => { saveBlotatoBtn.textContent = 'Save'; saveBlotatoBtn.disabled = false; }, 2000);
+            } catch (e) {
+                saveBlotatoBtn.textContent = 'Save';
+                saveBlotatoBtn.disabled = false;
+                addSystemLog('Failed to save Blotato key.', 'error');
+            }
+        });
+    }
+
+    if (testBlotatoBtn) {
+        testBlotatoBtn.addEventListener('click', async () => {
+            if (blotatoStatus) { blotatoStatus.textContent = 'Testing...'; blotatoStatus.style.color = 'var(--text-tertiary)'; }
+            if (blotatoAccountDiv) blotatoAccountDiv.style.display = 'none';
+            try {
+                const res = await fetch('/api/blotato/accounts', { headers: { 'X-User-ID': window.appUserId || 'default' } });
+                const data = await res.json();
+                if (data.connected) {
+                    if (blotatoStatus) { blotatoStatus.textContent = 'Connected!'; blotatoStatus.style.color = 'var(--success)'; }
+                    if (blotatoAccountDiv && data.linkedin) {
+                        blotatoAccountDiv.style.display = 'block';
+                        if (blotatoAccountName) blotatoAccountName.textContent = `LinkedIn: ${data.linkedin.fullname || 'Connected'}`;
+                    }
+                    addSystemLog('Blotato connection verified.', 'success');
+                } else {
+                    if (blotatoStatus) { blotatoStatus.textContent = data.error || 'Connection failed'; blotatoStatus.style.color = 'var(--danger)'; }
+                }
+            } catch (e) {
+                if (blotatoStatus) { blotatoStatus.textContent = 'Connection error'; blotatoStatus.style.color = 'var(--danger)'; }
+            }
+            if (window.lucide) lucide.createIcons();
+        });
+    }
+
+    // ============================================
+    // DRAFT PUBLISH / SCHEDULE (Blotato)
+    // ============================================
+
+    async function publishDraft(draftId, scheduledTime = null, force = false) {
+        addSystemLog(`Publishing draft ${draftId.substring(0, 8)}...`, 'neural');
+        try {
+            const res = await fetch(`/api/drafts/${draftId}/publish`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-User-ID': window.appUserId || 'default' },
+                body: JSON.stringify({ scheduled_time: scheduledTime, force: force })
+            });
+            const data = await res.json();
+
+            if (res.status === 422 && data.status === 'blocked') {
+                const reason = data.reason === 'quality_gate'
+                    ? `Quality gate blocked (${data.quality_score}/${data.threshold}). ${(data.feedback || []).join('; ')}`
+                    : `Schedule conflict: ${data.conflict?.reason || 'Unknown'}`;
+                addSystemLog(reason, 'error');
+                alert(`Publishing blocked:\n${reason}\n\nUse "Force Publish" to override.`);
+                return data;
+            }
+
+            if (data.status === 'published') {
+                addSystemLog(`Post published! ${data.public_url || ''}`, 'success');
+            } else if (data.status === 'scheduled') {
+                addSystemLog(`Post scheduled via Blotato.`, 'success');
+            } else if (data.status === 'error' || data.error) {
+                addSystemLog(`Publish failed: ${data.error || data.reason || 'Unknown'}`, 'error');
+            }
+
+            loadDrafts();
+            return data;
+        } catch (err) {
+            addSystemLog(`Publish error: ${err.message}`, 'error');
+            return { status: 'error', error: err.message };
+        }
+    }
+
+    // Add Publish Now button to draft edit modal footer (dynamically)
+    const draftEditFooter = draftEditModal ? draftEditModal.querySelector('.modal-footer') : null;
+    if (draftEditFooter && draftEditSaveBtn) {
+        const publishNowBtn = document.createElement('button');
+        publishNowBtn.className = 'action-btn success-btn';
+        publishNowBtn.style.cssText = 'background: linear-gradient(135deg, #22C55E, #16A34A); border-color: rgba(34,197,94,0.3);';
+        publishNowBtn.innerHTML = '<i data-lucide="send" class="btn-icon"></i> Publish Now';
+        publishNowBtn.addEventListener('click', async () => {
+            const draftId = document.getElementById('draft-edit-id').value;
+            if (!confirm('Publish this draft to LinkedIn immediately via Blotato?')) return;
+            publishNowBtn.disabled = true;
+            publishNowBtn.textContent = 'Publishing...';
+            const result = await publishDraft(draftId);
+            publishNowBtn.disabled = false;
+            publishNowBtn.innerHTML = '<i data-lucide="send" class="btn-icon"></i> Publish Now';
+            if (result.status === 'published' || result.status === 'scheduled') {
+                draftEditModal.classList.add('hidden');
+            }
+            if (window.lucide) lucide.createIcons();
+        });
+        draftEditFooter.appendChild(publishNowBtn);
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // ============================================
     // REGENERATE CAPTION MODAL LOGIC
     // ============================================
 
@@ -3331,7 +3783,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // UI Loading State
             modalScanLeadsBtn.disabled = true;
-            modalScanLeadsBtn.innerHTML = '<div class="loader" style="width: 14px; height: 14px; border-width: 2px; border-top-color: var(--brand-primary); margin-right: 6px; display: inline-block; vertical-align: middle;"></div> Scanning...';
+            modalScanLeadsBtn.innerHTML = '<i data-lucide="loader-2" style="width:16px;height:16px;animation:spin 1s linear infinite;"></i> Scanning...'; if (window.lucide) lucide.createIcons();
             if (modalLeadEmptyState) modalLeadEmptyState.style.display = 'none';
             if (modalLeadTableContainer) modalLeadTableContainer.classList.add('hidden');
             if (modalLeadScanLoading) modalLeadScanLoading.classList.remove('hidden');

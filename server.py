@@ -144,7 +144,7 @@ async def generate_post(req: GenerateRequest, request: Request):
         process = subprocess.run(command, capture_output=True, text=True, env=RUN_ENV, encoding='utf-8', errors='replace')
         
         if process.returncode != 0:
-            return JSONResponse(status_code=500, content={"error": process.stderr})
+            return JSONResponse(status_code=500, content={"error": process.stderr or process.stdout or f"Orchestrator exited with code {process.returncode}", "stdout": process.stdout[-2000:] if process.stdout else "", "stderr": process.stderr[-2000:] if process.stderr else "", "returncode": process.returncode})
         
         # Determine result file based on action
         result_file = ".tmp/final_plan.json"
@@ -626,7 +626,9 @@ async def research_youtube(req: ResearchRequest, request: Request):
     _clear_costs()
     urls_str = ",".join(req.urls)
     
-    if req.deep_search:
+    # Always use Apify on cloud (yt-dlp blocked by YouTube on datacenter IPs)
+    _is_cloud = os.path.exists("/app/modal_app.py") or os.environ.get("MODAL_ENVIRONMENT")
+    if req.deep_search or _is_cloud:
         command = ["python", "execution/apify_youtube.py", "--urls", urls_str]
     else:
         command = ["python", "execution/local_youtube.py", "--urls", urls_str]
@@ -715,10 +717,167 @@ GENERAL RULES:
         print(f"Drafting error: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+# --- DRAFTS CRUD ENDPOINTS ---
+
+class DraftSaveRequest(BaseModel):
+    user_id: Optional[str] = None
+    post_data: dict
+
+class DraftUpdateRequest(BaseModel):
+    user_id: Optional[str] = None
+    data: dict
+
+@app.get("/api/drafts")
+async def list_drafts(request: Request, status: str = None):
+    """List user's drafts with optional status filter."""
+    uid = request.headers.get("X-User-ID", request.headers.get("X-Firebase-UID", "default"))
+    from execution.supabase_client import get_user_drafts
+    drafts = get_user_drafts(uid=uid, status_filter=status)
+    return {"drafts": drafts}
+
+@app.post("/api/drafts")
+async def create_draft(req: DraftSaveRequest, request: Request):
+    """Save a new draft from generation/repurpose result."""
+    uid = request.headers.get("X-User-ID", request.headers.get("X-Firebase-UID", req.user_id or "default"))
+    from execution.supabase_client import save_draft
+
+    post = req.post_data
+    draft_data = {
+        "id": post.get("id", str(uuid.uuid4())),
+        "caption": post.get("caption", post.get("full_caption", "")),
+        "asset_url": post.get("asset_url", ""),
+        "final_image_prompt": post.get("final_image_prompt", ""),
+        "type": post.get("type", "text"),
+        "purpose": post.get("purpose", ""),
+        "topic": post.get("topic", ""),
+        "status": "draft",
+        "source_data": post,
+        "carousel_layout": post.get("carousel_layout"),
+        "quality_score": post.get("quality_score", 0),
+    }
+
+    saved = save_draft(draft_data, uid=uid)
+    print(f"[Drafts] Saved draft '{saved.get('id')}' for user {uid}")
+    return {"message": "Draft saved", "draft": saved}
+
+@app.put("/api/drafts/{draft_id}")
+async def update_draft_endpoint(draft_id: str, req: DraftUpdateRequest, request: Request):
+    """Update an existing draft (caption, status, schedule, etc.)."""
+    uid = request.headers.get("X-User-ID", request.headers.get("X-Firebase-UID", req.user_id or "default"))
+    from execution.supabase_client import update_draft
+
+    success = update_draft(draft_id, req.data, uid=uid)
+    if success:
+        print(f"[Drafts] Updated draft '{draft_id}' for user {uid}")
+        return {"message": "Draft updated"}
+    return JSONResponse(status_code=500, content={"error": "Failed to update draft"})
+
+@app.delete("/api/drafts/{draft_id}")
+async def delete_draft_endpoint(draft_id: str, request: Request):
+    """Delete a draft by ID."""
+    uid = request.headers.get("X-User-ID", request.headers.get("X-Firebase-UID", "default"))
+    from execution.supabase_client import delete_draft
+
+    success = delete_draft(draft_id, uid=uid)
+    if success:
+        print(f"[Drafts] Deleted draft '{draft_id}' for user {uid}")
+        return {"message": "Draft deleted"}
+    return JSONResponse(status_code=500, content={"error": "Failed to delete draft"})
+
+class PublishRequest(BaseModel):
+    user_id: Optional[str] = None
+    scheduled_time: Optional[str] = None
+    force: bool = False
+
+@app.post("/api/drafts/{draft_id}/publish")
+async def publish_draft_endpoint(draft_id: str, req: PublishRequest, request: Request):
+    """Publish a draft to LinkedIn via Blotato API."""
+    uid = request.headers.get("X-User-ID", request.headers.get("X-Firebase-UID", req.user_id or "default"))
+    
+    from execution.supabase_client import get_user_drafts, update_draft
+    
+    # Load draft
+    drafts = get_user_drafts(uid=uid)
+    draft = next((d for d in drafts if d.get("id") == draft_id), None)
+    if not draft:
+        return JSONResponse(status_code=404, content={"error": "Draft not found"})
+    
+    try:
+        from execution.blotato_bridge import publish_draft as _publish
+        
+        result = _publish(
+            caption=draft.get("caption", ""),
+            asset_url=draft.get("asset_url"),
+            scheduled_time=req.scheduled_time,
+            force=req.force,
+        )
+        
+        status = result.get("status", "unknown")
+        
+        if status == "blocked":
+            return JSONResponse(status_code=422, content=result)
+        
+        if status in ("published", "scheduled"):
+            update_data = {
+                "status": status,
+                "blotato_post_id": result.get("submission_id", ""),
+                "quality_score": result.get("quality_score", 0),
+            }
+            if status == "published":
+                from datetime import datetime
+                update_data["published_at"] = datetime.utcnow().isoformat()
+            if req.scheduled_time:
+                update_data["scheduled_at"] = req.scheduled_time
+            
+            update_draft(draft_id, update_data, uid=uid)
+            print(f"[Blotato] Draft '{draft_id}' {status} for user {uid}")
+        
+        return result
+        
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"error": str(e)})
+    except Exception as e:
+        print(f"[Blotato] Publish error: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/api/blotato/accounts")
+async def blotato_accounts(request: Request):
+    """Test Blotato API connection and list connected accounts."""
+    try:
+        from execution.blotato_bridge import test_connection
+        return test_connection()
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"error": str(e), "connected": False})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e), "connected": False})
+
+@app.get("/api/blotato/schedule")
+async def blotato_schedule(request: Request):
+    """Get upcoming schedule + next optimal slot."""
+    try:
+        from execution.blotato_bridge import get_schedule_info
+        return get_schedule_info()
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+class QualityCheckRequest(BaseModel):
+    caption: str
+    has_image: bool = False
+
+@app.post("/api/blotato/quality-check")
+async def blotato_quality_check(req: QualityCheckRequest):
+    """Score a caption against the quality gate without publishing."""
+    try:
+        from execution.blotato_bridge import get_quality_score
+        return get_quality_score(req.caption, has_image=req.has_image)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 # --- SETTINGS ENDPOINTS ---
 
 class SettingsUpdateRequest(BaseModel):
     trackedProfileUrl: Optional[str] = None
+    blotatoApiKey: Optional[str] = None
 
 @app.get("/api/settings")
 async def get_settings(request: Request):

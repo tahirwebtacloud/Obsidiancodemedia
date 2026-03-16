@@ -47,7 +47,7 @@ This system generates LinkedIn posts with full support for:
 
 ### Frontend (`frontend/`)
 
-- **index.html**: Main UI with Generate tab, Competitor Hub, Repurpose Modal, and **horizontal stepper progress tracker**
+- **index.html**: Main UI with Generate tab, Competitor Hub, Repurpose Modal, Drafts, and **horizontal stepper progress tracker**
 - **script.js**: Client-side logic for form handling, modal management, API calls, and **SSE progress streaming** (`generateWithSSE`, `showSimpleProgress`, `completeSimpleProgress`)
 - **style.css**: Modern dark theme with glassmorphism effects and **animated stepper progress UI**
 
@@ -65,6 +65,12 @@ FastAPI server (port 9999) with endpoints:
 - `POST /api/regenerate-caption`: Regenerate caption with custom instructions
 - `POST /api/draft`: Quick in-situ drafting via Gemini LLM
 - `GET /api/history`: Get generation history (max 100 entries)
+- `GET /api/drafts`: List drafts
+- `POST /api/drafts`: Create draft
+- `PUT /api/drafts/{draft_id}`: Update draft
+- `DELETE /api/drafts/{draft_id}`: Delete draft
+- `POST /api/drafts/{draft_id}/publish`: Publish or schedule a draft via Blotato
+- `POST /api/blotato/test`: Validate Blotato API key and fetch account info
 
 **Server features:**
 
@@ -194,38 +200,95 @@ generate_assets.py:
 
 ## Environment Variables
 
+See `.env.example` for the full list. Key variables:
+
 ```bash
 GOOGLE_GEMINI_API_KEY=your_gemini_api_key
 GEMINI_TEXT_MODEL=gemini-3-pro-preview
-GEMINI_IMAGE_MODEL=gemini-3-pro-preview
+GEMINI_IMAGE_MODEL=gemini-3-pro-image-preview
+APIFY_API_KEY=your_apify_api_key
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+BASEROW_TOKEN=your_baserow_token
+JINA_API_KEY=your_jina_api_key
+BLOTATO_API_KEY=your_blotato_api_key
 ```
 
 ## Setup
 
+### Option A: Local Development
+
 1. **Install Dependencies**:
 
 ```bash
-pip install fastapi uvicorn python-dotenv google-genai yt-dlp requests
+pip install -r requirements.txt
 ```
 
-1. **Set Environment Variables**:
+2. **Set Environment Variables**:
 
 ```bash
-# Create .env file
-GOOGLE_GEMINI_API_KEY=your_key_here
+cp .env.example .env
+# Fill in your API keys in .env
 ```
 
-1. **Run Server**:
+3. **Run Server**:
 
 ```bash
 python server.py
 ```
 
-1. **Access UI**:
+4. **Access UI**:
 
 ```text
 http://localhost:9999
 ```
+
+### Option B: Cloud Deployment (Modal)
+
+The app is deployed as a full-stack serverless application on [Modal](https://modal.com).
+
+**Live URL**: `https://tahir-70872--linkedin-post-generator-web.modal.run`
+
+**Deployment file**: `modal_app.py` — packages the entire FastAPI backend + static frontend into a single Modal web endpoint.
+
+1. **Install Modal CLI**:
+
+```bash
+pip install modal
+```
+
+2. **Authenticate**:
+
+```bash
+modal token new
+```
+
+3. **Create Secrets** (from your local `.env`):
+
+```bash
+modal secret create linkedin-post-generator --from-dotenv .env
+```
+
+4. **Deploy**:
+
+```powershell
+$env:PYTHONIOENCODING="utf-8"; modal deploy modal_app.py
+```
+
+5. **Dev Mode** (hot-reload with temporary URL):
+
+```powershell
+$env:PYTHONIOENCODING="utf-8"; modal serve modal_app.py
+```
+
+**Key Modal behaviors:**
+- **Snapshot-based**: Local changes require re-deploy (`modal deploy`) to go live
+- **Scale-to-zero**: Container idles after 5 min of no traffic (no cost when unused)
+- **Cold start**: First request after idle takes ~10-15s to spin up the container
+- **Concurrency**: Handles up to 10 concurrent requests per container
+- **Timeout**: 600s max per request (sufficient for long generation runs)
+
+**Important**: After deploying, add the Modal URL as an allowed redirect in your Supabase dashboard (Authentication → URL Configuration → Redirect URLs)
 
 ## Usage
 
@@ -238,6 +301,24 @@ http://localhost:9999
 5. Configure Aspect Ratio (if Image)
 6. Enter Topic
 7. Click Generate
+
+### Drafts
+
+Drafts are saved per user and can be edited, deleted, and published.
+
+- **Save a draft**: Generate a post and click `Save Draft`
+- **Browse drafts**: Open `History` then switch to the `Drafts` sub-tab
+- **Edit**: Click a draft to open the Draft Edit modal
+- **Publish/Schedule**: Use the publish controls in the Draft Edit modal (uses Blotato)
+
+The Drafts view uses a 3D "book" card UI with a hover flip animation.
+
+### Settings (Blotato)
+
+Use the Settings icon in the top header to configure publishing:
+
+- **Set API key**: Paste your Blotato API key and click `Save`
+- **Test connection**: Click `Test Connection` to confirm account access
 
 ### Competitor Hub
 
@@ -487,6 +568,26 @@ Analyze YouTube videos with transcript extraction.
 - Edit mega prompt in `generate_assets.py` (lines 373-450)
 - Edit system prompts in `directives/*.md` files
 - No code changes needed for prompt tuning
+
+## Deployment Architecture
+
+```
+Local Machine                          Modal Cloud
+┌──────────────┐     modal deploy     ┌──────────────────────────────────┐
+│ modal_app.py │ ──────────────────►  │ Container (Debian + Python 3.11) │
+│ server.py    │                      │  /app/server.py (FastAPI)        │
+│ orchestrator │                      │  /app/orchestrator.py            │
+│ frontend/    │                      │  /app/frontend/ (static)         │
+│ execution/   │                      │  /app/execution/ (scripts)       │
+│ directives/  │                      │  /app/directives/ (prompts)      │
+│ .env         │                      │  Modal Secrets (env vars)        │
+└──────────────┘                      └──────────────────────────────────┘
+                                        ▲
+                                        │ HTTPS
+                                        │
+                                      Users access via:
+                                      tahir-70872--linkedin-post-generator-web.modal.run
+```
 
 ## License
 

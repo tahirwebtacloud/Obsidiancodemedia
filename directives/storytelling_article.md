@@ -2,12 +2,12 @@
 
 ## Voice Binding
 
-This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For storytelling articles, use the **60% Keith / 40% Scott** tone blend:
+This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For storytelling articles, use the **USER'S DEFINED** tone blend:
 
 - Sound like a founder writing a long-form personal essay about a real experience. Warm, human, with dry humor and genuine emotion.
-- Keith's register dominates: first-person authority, mentoring tone, occasionally wry. The "I remember when..." voice.
-- Scott's energy adds: action verbs, team-oriented framing, results context, positive momentum.
-- Ground stories in Obsidian's real client outcomes when relevant (law firm saving $60K/yr, Redport modernizing workflows, First Team Cyber scaling lead gen).
+- Use first-person authority, mentoring tone, occasionally wry. The "I remember when..." voice.
+- Use action verbs, team-oriented framing, results context, positive momentum.
+- Ground stories in real client outcomes when relevant (money saved, workflows modernized, lead gen scaled).
 - Use "I", "We", "Our team" - always human, never corporate.
 - This is a LONG-FORM article (~1000 words), not a short post. Develop the story fully with scenes, dialogue, and reflection.
 
@@ -67,20 +67,20 @@ Examples: "The Phone Call That Changed How I Think About Automation" or "We Almo
 - **Hook (max 8 words):** A provocative identity challenge or personal scene that stops the scroll.
 - **Scene:** Drop the reader into a specific moment. Use sensory details — time, place, who was there. Include at least one piece of slightly imperfect dialogue.
 - **Tension:** Build the problem. Show, don't tell. Include a moment of doubt, frustration, or honest admission. "I wasn't sure we could fix this."
-- **MANDATORY**: Include a specific dollar or time metric that quantifies the stakes (the Money Math element, e.g., "They were burning $5k/month on a process that took 3 clicks to fix").
+- **MANDATORY**: Include a specific dollar or time metric that quantifies the stakes (the Money Math element, e.g., "They were burning [Amount] on a process that took 3 clicks to fix").
 
 **2. LESSON (The Turn & Insight) — 2-3 paragraphs:**
 
 - The discovery, the solution, the moment everything shifted.
 - Include the human reaction — surprise, relief, disbelief. "She called me three days later. Her voice was different."
 - Bridge the personal moment to the broader, counter-intuitive insight: "That's when I realized..."
-- Don't preach — reflect. Use phrases like "The pattern I keep seeing after 20 years is..."
+- Don't preach — reflect. Use phrases like "The pattern I keep seeing after [Years] is..."
 
 **3. ACTION (The Framework & Proof) — 2-3 paragraphs:**
 
 - Extract a named, actionable framework or set of principles from the story.
 - **MANDATORY**: Ground the story with real results — specific numbers, outcomes, what changed. Pair every metric with its human impact.
-- Use Obsidian's real case studies and metrics as evidence.
+- Use real case studies and metrics as evidence.
 
 **4. YOU (Quotable Closer & CTA) — 1-2 paragraphs:**
 
@@ -122,7 +122,7 @@ Rate the draft 1-5 on each dimension before finalizing:
 - No polished, formal dialogue that sounds scripted.
 - No dramatic moral language or preaching tone.
 - Emojis only from approved set: 😂 😅 😉 😜 🤔 😁 (use sparingly).
-- Voice: Founder recounting a real moment (Keith's register with Scott's energy).
+- Voice: Founder recounting a real moment.
 - **STRICTLY PROHIBITED**: Do not use bullet points or numbered lists in the body.
 - **STRICTLY PROHIBITED**: Do not use "Pro tip:", "Note:", or "Key takeaway:". Make the lesson organic.
 - **TARGET LENGTH**: 800-1200 words. Do NOT write a 150-word post. This is a full article.

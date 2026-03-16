@@ -504,6 +504,54 @@ if process.returncode != 0:
 
 ### UI Issues
 
+#### Issue: Settings icon does nothing
+
+**Symptoms:**
+- Clicking the Settings icon has no effect
+
+**Root Cause:**
+- The Settings modal element is missing or has a mismatched id
+
+**Solution:**
+- Verify `frontend/index.html` contains `id="settings-modal"`
+- Verify `frontend/script.js` binds the click handler to `id="open-settings-btn"`
+
+---
+
+#### Issue: Drafts list is empty but you have drafts saved
+
+**Symptoms:**
+- Drafts tab shows “No drafts yet” even after saving
+
+**Root Causes:**
+1. Missing `X-User-ID` header (requests saving/loading drafts under `default` user)
+2. Supabase schema/policies not applied (drafts table not created)
+3. Supabase unreachable and local fallback file not writable
+
+**Solution:**
+- Confirm you are signed in and requests include `X-User-ID`
+- Re-run `supabase_setup.sql` to ensure the `drafts` table and policies exist
+- Check for `.tmp/drafts_{uid}.json` creation when offline mode is triggered
+
+---
+
+#### Issue: Blotato test connection fails
+
+**Symptoms:**
+- Settings modal shows an error when clicking `Test Connection`
+
+**Root Causes:**
+1. Invalid API key
+2. Key not saved for the active user (saved under a different `X-User-ID`)
+3. Network / Blotato API outage
+
+**Solution:**
+- Save the key in Settings and re-test
+- Check server logs for `/api/blotato/test` error details
+- Verify the backend can reach external HTTPS endpoints
+
+---
+
 #### Issue: Repurpose modal not showing visual context indicator
 **Symptoms:**
 - Visual context badge hidden
@@ -871,6 +919,135 @@ python execution/generate_assets.py --type text --purpose educational --topic "T
 - [ ] Verify tone matches purpose
 - [ ] Clear temp files if needed
 
+## Modal Deployment Issues
+
+### Issue: Page loads indefinitely on first visit (cold start)
+**Symptoms:**
+- Browser spinner keeps spinning for 10-15 seconds
+- Eventually loads normally
+
+**Cause:** Modal containers scale to zero after 5 min of inactivity. First request triggers a cold start (container spin-up).
+
+**Solution:**
+- This is expected behavior. Wait ~10-15s for cold start.
+- Hard refresh with `Ctrl+Shift+R` if the page was cached from a previous failed load.
+- To keep the container warm, reduce `scaledown_window` in `modal_app.py` (increases cost).
+
+---
+
+### Issue: `ModuleNotFoundError: No module named 'server'`
+**Symptoms:**
+- Modal logs show `ModuleNotFoundError` when container starts
+- App returns 500 or hangs
+
+**Cause:** `server.py` is at `/app/server.py` but `/app` is not in Python's `sys.path`.
+
+**Solution:**
+The `web()` function in `modal_app.py` must add `/app` to `sys.path` before importing:
+```python
+if "/app" not in sys.path:
+    sys.path.insert(0, "/app")
+from server import app as fastapi_app
+```
+
+---
+
+### Issue: `RuntimeError` from missing `.tmp/` directory
+**Symptoms:**
+- Container crashes immediately on startup
+- Logs mention `StaticFiles` directory not found
+
+**Cause:** `server.py` mounts `.tmp` as a `StaticFiles` directory at import time (line 48). If `.tmp/` doesn't exist when the module is imported, it crashes.
+
+**Solution:**
+Create `.tmp/` in `modal_app.py` BEFORE importing `server.py`:
+```python
+os.makedirs("/app/.tmp", exist_ok=True)
+from server import app as fastapi_app
+```
+
+---
+
+### Issue: `charmap` codec error during `modal deploy`
+**Symptoms:**
+```
+'charmap' codec can't encode characters in position 3-42: character maps to <undefined>
+```
+
+**Cause:** Windows terminal encoding issue with Modal's output.
+
+**Solution:**
+Always prefix deploy commands with UTF-8 encoding:
+```powershell
+$env:PYTHONIOENCODING="utf-8"; modal deploy modal_app.py
+```
+
+---
+
+### Issue: Changes not reflected after editing code
+**Symptoms:**
+- You edited `server.py` or other files locally
+- The live Modal URL still shows old behavior
+
+**Cause:** Modal deployments are snapshot-based. Local file changes are NOT auto-synced.
+
+**Solution:**
+```powershell
+# Re-deploy to push changes
+$env:PYTHONIOENCODING="utf-8"; modal deploy modal_app.py
+
+# Or use dev mode for hot-reload (temporary URL)
+$env:PYTHONIOENCODING="utf-8"; modal serve modal_app.py
+```
+
+---
+
+### Issue: Supabase Google OAuth redirect fails
+**Symptoms:**
+- Google sign-in redirects to an error page
+- Auth callback doesn't return to the app
+
+**Cause:** The Modal deployment URL is not in Supabase's allowed redirect URLs.
+
+**Solution:**
+1. Go to Supabase Dashboard → Authentication → URL Configuration
+2. Add `https://tahir-70872--linkedin-post-generator-web.modal.run` to Redirect URLs
+3. Also add it to Site URL if it's the primary deployment
+
+---
+
+### Issue: Generated images/files lost after container restart
+**Symptoms:**
+- Previously generated images return 404
+- `.tmp/` files are gone
+
+**Cause:** Modal containers have ephemeral filesystems. `.tmp/` resets on every cold start.
+
+**Solution:**
+- This is expected. Generated assets are temporary previews.
+- For persistence, consider using a Modal `Volume` or external storage (Supabase Storage, S3).
+- History entries saved to Supabase are not affected.
+
+---
+
+### Viewing Modal Logs
+```powershell
+# Stream live logs from the deployed app
+$env:PYTHONIOENCODING="utf-8"; modal app logs linkedin-post-generator
+```
+
+---
+
+### Updating Secrets After .env Changes
+```powershell
+# Recreate the secret with updated values
+modal secret create linkedin-post-generator --from-dotenv .env --force
+# Then redeploy
+$env:PYTHONIOENCODING="utf-8"; modal deploy modal_app.py
+```
+
+---
+
 ## Summary
 
 This guide covers:
@@ -884,9 +1061,10 @@ This guide covers:
 - LLM issues (instructions, hallucinations)
 - **SSE / Progress tracker issues** (stepper stuck, sound, connector line, unicode)
 - Performance issues (speed, memory)
+- **Modal deployment issues** (cold starts, module errors, encoding, secrets, OAuth redirect)
 
 For more details:
 - `README.md` - Overview and setup
 - `ARCHITECTURE.md` - Technical details
-- `ROUTING.md` - 128 routing matrix
-- `WORKFLOWS.md` - Common workflows
+- `CHANGELOG.md` - Version history
+- `SUPABASE_SETUP.md` - Database setup

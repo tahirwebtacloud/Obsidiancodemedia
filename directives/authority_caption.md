@@ -2,23 +2,22 @@
 
 ## Voice Binding
 
-This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For authority posts, use the **50% Keith / 50% Scott** tone blend:
+This SOP works WITH the Founder Voice & Tone Directive and Brand Knowledge Base prepended above. For authority posts, use the **USER'S DEFINED** tone blend:
 
-- Sound like two industry veterans challenging a norm together. Confident, data-backed, contrarian but not arrogant.
-- Keith's register: "After 20 years in cybersecurity...", "I've seen this pattern before...", first-person experience authority.
-- Scott's register: "Proven track record", quantified claims, strategic framing, competitive positioning.
-- Ground contrarian claims in Obsidian's real experience: government contractors, SMBs, law firms, cybersecurity.
-- Use Obsidian's "allergic to vaporware" philosophy to challenge overhyped tech trends.
-- Reference real proof points when backing claims (451% qualified leads, 5.44x ROI, $60K saved, 26hrs/week saved).
+- Sound like an industry veteran challenging a norm. Confident, data-backed, contrarian but not arrogant.
+- Use first-person experience authority: "After [Years] in [Industry]...", "I've seen this pattern before..."
+- Use quantified claims, strategic framing, competitive positioning.
+- Ground contrarian claims in real experience.
+- Reference real proof points when backing claims (qualified leads, ROI, money saved, time saved).
 
 ## Goal
 
-Create high-performing LinkedIn "Money Mathship" posts that challenge industry norms or provide a unique perspective on a trend, rooted in the Obsidian Logic AI brand philosophy.
+Create high-performing LinkedIn "Money Mathship" posts that challenge industry norms or provide a unique perspective on a trend, rooted in the user's brand philosophy.
 
 ## Contextual Integration
 
-- **Source**: The Brand Knowledge Base (prepended above) contains Obsidian's services, case studies, and proof points. Use them.
-- **Goal**: Optimize for REACH and ENGAGEMENT. Provide a unique perspective on a trend, rooted in the Obsidian Logic AI brand philosophy.
+- **Source**: The Brand Knowledge Base (prepended above) contains services, case studies, and proof points. Use them.
+- **Goal**: Optimize for REACH and ENGAGEMENT. Provide a unique perspective on a trend, rooted in the brand philosophy.
 
 ## The SLAY Framework (Strict Structure)
 
@@ -46,7 +45,7 @@ You MUST structure the post strictly following the "Combined SLAY Framework":
 
 ## Return Format
 
-- MAXIMUM 150 words.
+- MAXIMUM 370 words.
 - NO conversational filler or section headers.
 - Output ONLY the post content.
 

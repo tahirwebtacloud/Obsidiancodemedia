@@ -53,3 +53,38 @@ CREATE POLICY "Users can update own history" ON history FOR UPDATE USING (true);
 CREATE POLICY "Users can read own settings" ON user_settings FOR SELECT USING (true);
 CREATE POLICY "Users can upsert own settings" ON user_settings FOR INSERT WITH CHECK (true);
 CREATE POLICY "Users can update own settings" ON user_settings FOR UPDATE USING (true);
+
+-- ============================================
+-- 5. Drafts table (stores saved post drafts for editing, scheduling, publishing)
+-- ============================================
+CREATE TABLE IF NOT EXISTS drafts (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    caption TEXT DEFAULT '',
+    asset_url TEXT DEFAULT '',
+    final_image_prompt TEXT DEFAULT '',
+    type TEXT DEFAULT 'text',
+    purpose TEXT DEFAULT '',
+    topic TEXT DEFAULT '',
+    status TEXT DEFAULT 'draft',
+    scheduled_at TIMESTAMPTZ,
+    published_at TIMESTAMPTZ,
+    blotato_post_id TEXT,
+    source_data JSONB DEFAULT '{}',
+    carousel_layout JSONB,
+    quality_score INT DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for fast per-user draft queries
+CREATE INDEX IF NOT EXISTS idx_drafts_user_status ON drafts (user_id, status);
+CREATE INDEX IF NOT EXISTS idx_drafts_user_created ON drafts (user_id, created_at DESC);
+
+-- RLS
+ALTER TABLE drafts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own drafts" ON drafts FOR SELECT USING (true);
+CREATE POLICY "Users can insert own drafts" ON drafts FOR INSERT WITH CHECK (true);
+CREATE POLICY "Users can update own drafts" ON drafts FOR UPDATE USING (true);
+CREATE POLICY "Users can delete own drafts" ON drafts FOR DELETE USING (true);

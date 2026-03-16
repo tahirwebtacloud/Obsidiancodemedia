@@ -224,3 +224,185 @@ def update_settings(data: dict, uid: str = "default") -> bool:
     except Exception as e:
         print(f"[Supabase] update_settings error uid='{safe_uid}'. Saved locally. Error: {e}")
         return True
+
+
+# ─────────────────────────────────────────────────────────────
+# Public API — Drafts
+# ─────────────────────────────────────────────────────────────
+
+def save_draft(data: dict, uid: str = "default") -> dict:
+    """Insert a new draft into Supabase and local cache. Returns the saved draft dict."""
+    safe_uid = uid.strip() if uid else "default"
+
+    draft = {
+        "id": data.get("id", ""),
+        "user_id": safe_uid,
+        "caption": data.get("caption", ""),
+        "asset_url": data.get("asset_url", ""),
+        "final_image_prompt": data.get("final_image_prompt", ""),
+        "type": data.get("type", "text"),
+        "purpose": data.get("purpose", ""),
+        "topic": data.get("topic", ""),
+        "status": data.get("status", "draft"),
+        "scheduled_at": data.get("scheduled_at"),
+        "published_at": data.get("published_at"),
+        "blotato_post_id": data.get("blotato_post_id"),
+        "source_data": data.get("source_data", {}),
+        "carousel_layout": data.get("carousel_layout"),
+        "quality_score": data.get("quality_score", 0),
+    }
+
+    _save_draft_local(draft, safe_uid)
+
+    if safe_uid == "default":
+        return draft
+
+    try:
+        client = _get_client()
+        row = dict(draft)
+        if isinstance(row.get("source_data"), dict):
+            row["source_data"] = json.dumps(row["source_data"])
+        if isinstance(row.get("carousel_layout"), (dict, list)):
+            row["carousel_layout"] = json.dumps(row["carousel_layout"])
+        client.table("drafts").upsert(row).execute()
+    except Exception as e:
+        print(f"[Supabase] save_draft error uid='{safe_uid}'. Saved locally. Error: {e}")
+
+    return draft
+
+
+def get_user_drafts(uid: str = "default", status_filter: str = None) -> list:
+    """Read drafts from Supabase. Fallback to local."""
+    safe_uid = uid.strip() if uid else "default"
+
+    if safe_uid != "default":
+        try:
+            client = _get_client()
+            query = (
+                client.table("drafts")
+                .select("*")
+                .eq("user_id", safe_uid)
+            )
+            if status_filter:
+                query = query.eq("status", status_filter)
+            result = query.order("created_at", desc=True).limit(200).execute()
+            if result.data is not None:
+                drafts = []
+                for row in result.data:
+                    entry = dict(row)
+                    for json_field in ("source_data", "carousel_layout"):
+                        if isinstance(entry.get(json_field), str):
+                            try:
+                                entry[json_field] = json.loads(entry[json_field])
+                            except Exception:
+                                pass
+                    drafts.append(entry)
+                return drafts
+        except Exception as e:
+            print(f"[Supabase] get_user_drafts error uid='{safe_uid}'. Falling back to local. Error: {e}")
+
+    return _load_drafts_local(safe_uid, status_filter)
+
+
+def update_draft(draft_id: str, data: dict, uid: str = "default") -> bool:
+    """Partial update of a draft. Only provided keys are updated."""
+    safe_uid = uid.strip() if uid else "default"
+
+    _update_draft_local(draft_id, data, safe_uid)
+
+    if safe_uid == "default":
+        return True
+
+    try:
+        client = _get_client()
+        row = {}
+        allowed_fields = [
+            "caption", "asset_url", "final_image_prompt", "type", "purpose",
+            "topic", "status", "scheduled_at", "published_at",
+            "blotato_post_id", "source_data", "carousel_layout", "quality_score",
+        ]
+        for key in allowed_fields:
+            if key in data:
+                val = data[key]
+                if key in ("source_data", "carousel_layout") and isinstance(val, (dict, list)):
+                    val = json.dumps(val)
+                row[key] = val
+        if row:
+            client.table("drafts").update(row).eq("id", draft_id).eq("user_id", safe_uid).execute()
+        return True
+    except Exception as e:
+        print(f"[Supabase] update_draft error uid='{safe_uid}'. Saved locally. Error: {e}")
+        return True
+
+
+def delete_draft(draft_id: str, uid: str = "default") -> bool:
+    """Delete a draft by ID."""
+    safe_uid = uid.strip() if uid else "default"
+
+    _delete_draft_local(draft_id, safe_uid)
+
+    if safe_uid == "default":
+        return True
+
+    try:
+        client = _get_client()
+        client.table("drafts").delete().eq("id", draft_id).eq("user_id", safe_uid).execute()
+        return True
+    except Exception as e:
+        print(f"[Supabase] delete_draft error uid='{safe_uid}'. Deleted locally. Error: {e}")
+        return True
+
+
+# ─────────────────────────────────────────────────────────────
+# Drafts — Local file fallback helpers
+# ─────────────────────────────────────────────────────────────
+
+def _drafts_file(safe_uid: str) -> str:
+    os.makedirs(".tmp", exist_ok=True)
+    return f".tmp/drafts_{safe_uid}.json"
+
+
+def _load_all_drafts_local(safe_uid: str) -> list:
+    path = _drafts_file(safe_uid)
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+
+def _write_all_drafts_local(drafts: list, safe_uid: str):
+    path = _drafts_file(safe_uid)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(drafts, f, indent=2, ensure_ascii=False, default=str)
+
+
+def _save_draft_local(draft: dict, safe_uid: str):
+    drafts = _load_all_drafts_local(safe_uid)
+    drafts = [d for d in drafts if d.get("id") != draft.get("id")]
+    drafts.insert(0, draft)
+    _write_all_drafts_local(drafts, safe_uid)
+
+
+def _load_drafts_local(safe_uid: str, status_filter: str = None) -> list:
+    drafts = _load_all_drafts_local(safe_uid)
+    if status_filter:
+        drafts = [d for d in drafts if d.get("status") == status_filter]
+    return drafts
+
+
+def _update_draft_local(draft_id: str, data: dict, safe_uid: str):
+    drafts = _load_all_drafts_local(safe_uid)
+    for d in drafts:
+        if d.get("id") == draft_id:
+            d.update(data)
+            break
+    _write_all_drafts_local(drafts, safe_uid)
+
+
+def _delete_draft_local(draft_id: str, safe_uid: str):
+    drafts = _load_all_drafts_local(safe_uid)
+    drafts = [d for d in drafts if d.get("id") != draft_id]
+    _write_all_drafts_local(drafts, safe_uid)
