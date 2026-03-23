@@ -17,8 +17,8 @@
 
 - [x] **UI-01**: Build Studio layout (Left form, Right live canvas)
 - [x] **UI-02**: Build Skeletons to mask LLM generation latency
-- [ ] **UI-03**: Build Intelligence dashboard (Viral/Competitor)
-- [ ] **UI-04**: Build Evolution dashboard with Tremor/Recharts visualizations
+- [x] **UI-03**: Build Intelligence dashboard (Viral/Competitor)
+- [x] **UI-04**: Build Evolution dashboard with Tremor/Recharts visualizations
 - [x] **UI-05**: Build Brand Identity manager (Persona, Directives, Palette)
 
 ### Auto-Evolution Data Engine
@@ -40,8 +40,8 @@
 | SEC-05 | Phase 1 | Pending |
 | UI-01 | Phase 2 | Complete |
 | UI-02 | Phase 2 | Complete |
-| UI-03 | Phase 2 | Pending |
-| UI-04 | Phase 2 | Pending |
+| UI-03 | Phase 2 | Complete |
+| UI-04 | Phase 2 | Complete |
 | UI-05 | Phase 2 | Complete |
 | EVO-01 | Phase 3 | Pending |
 | EVO-02 | Phase 3 | Pending |
