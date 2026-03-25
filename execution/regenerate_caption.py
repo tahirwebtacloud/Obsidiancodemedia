@@ -6,8 +6,8 @@ import io
 from dotenv import load_dotenv
 
 # Force UTF-8 for stdout/stderr
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True, write_through=True)
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', line_buffering=True, write_through=True)
 
 load_dotenv()
 
@@ -17,7 +17,7 @@ from cost_tracker import CostTracker
 
 def call_llm(system_prompt, user_content):
     api_key = os.getenv("GOOGLE_GEMINI_API_KEY")
-    model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3-pro-preview")
+    model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.1-pro-preview")
     try:
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(
@@ -37,7 +37,25 @@ def call_llm(system_prompt, user_content):
     except Exception as e:
         return f"Error: {str(e)}"
 
-def regenerate_caption(topic="Modern AI", purpose="storytelling", post_type="image", style="minimal", instructions=None):
+def _load_user_context_for_regen(user_id: str, topic: str) -> str:
+    """Load per-user persona/brand context from Supabase for prompt injection."""
+    safe_uid = (user_id or "default").strip() or "default"
+    if safe_uid == "default":
+        return ""
+    try:
+        from generate_text_post import _load_user_generation_context, _build_user_context_sections
+        ctx = _load_user_generation_context(safe_uid, topic=topic)
+        sections = _build_user_context_sections(ctx, "brand")
+        return sections.get("system", "")
+    except Exception as e:
+        print(f">>> Warning: Could not load user context for regeneration: {e}", file=sys.stderr)
+        return ""
+
+
+def regenerate_caption(topic="Modern AI", purpose="storytelling", post_type="image", style="minimal", instructions=None, user_id="default"):
+    # Load per-user persona/brand context
+    user_context_block = _load_user_context_for_regen(user_id, topic)
+
     # Load analysis if available
     input_path = ".tmp/analysis.json"
     if os.path.exists(input_path):
@@ -53,6 +71,10 @@ def regenerate_caption(topic="Modern AI", purpose="storytelling", post_type="ima
             system_prompt = f.read()
     else:
         system_prompt = "You are an expert LinkedIn copywriter."
+
+    # Prepend dynamic user persona/brand context
+    if user_context_block:
+        system_prompt = user_context_block + "\n\n---\n\n" + system_prompt
 
     # Load Current Caption from Analysis if not passed (or from final_plan)
     current_caption = ""
@@ -103,7 +125,10 @@ def regenerate_caption(topic="Modern AI", purpose="storytelling", post_type="ima
     
     # Generate
     caption = call_llm(system_prompt, user_content)
-    
+
+    if not caption:
+        caption = "Error: Failed to regenerate caption."
+
     # Clean
     lines = caption.split('\n')
     cleaned_lines = []
@@ -142,5 +167,6 @@ if __name__ == "__main__":
     parser.add_argument("--type", default="image")
     parser.add_argument("--style", default="minimal")
     parser.add_argument("--instructions", default=None, help="Specific instructions for refinement")
+    parser.add_argument("--user-id", default="default", help="Authenticated user ID for personalization")
     args = parser.parse_args()
-    regenerate_caption(args.topic, args.purpose, args.type, args.style, args.instructions)
+    regenerate_caption(args.topic, args.purpose, args.type, args.style, args.instructions, getattr(args, 'user_id', 'default'))

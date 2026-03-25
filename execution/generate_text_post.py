@@ -43,9 +43,9 @@ def _configure_utf8_stdio() -> None:
     """Force UTF-8 stdio for Windows CLI runs without mutating import-time streams."""
     try:
         if hasattr(sys.stdout, "buffer"):
-            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", line_buffering=True, write_through=True)
         if hasattr(sys.stderr, "buffer"):
-            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", line_buffering=True, write_through=True)
     except Exception:
         # Keep existing stdio streams if wrapping is not possible.
         pass
@@ -191,9 +191,8 @@ def _handle_library_tool_call(fn_name: str, fn_args: dict) -> str:
     return content
 
 
-# Build tool declarations for Gemini function calling
-_LIBRARY_TOOL_DECLARATIONS = types.Tool(
-    function_declarations=[
+def get_tool_declarations(include_lead_magnet=False):
+    funcs = [
         types.FunctionDeclaration(
             name="get_hook_library",
             description="Load the full hook templates from a specific hook category.",
@@ -234,13 +233,19 @@ _LIBRARY_TOOL_DECLARATIONS = types.Tool(
             description="Fetch technical product specs, case studies, or deeper knowledge related to a topic.",
             parameters={"type": "OBJECT", "properties": {"topic": {"type": "STRING", "description": "Topic to search for"}}, "required": ["topic"]},
         ),
-        types.FunctionDeclaration(
-            name="tavily_search",
-            description="Search the web for tools, latest resources, and GitHub repos. Use this to find lead magnets.",
-            parameters={"type": "OBJECT", "properties": {"query": {"type": "STRING", "description": "Search query"}}, "required": ["query"]},
-        ),
     ]
-)
+    
+    if include_lead_magnet:
+        funcs.append(
+            types.FunctionDeclaration(
+                name="tavily_search",
+                description="Search the web for tools, latest resources, and GitHub repos. Use this to find lead magnets.",
+                parameters={"type": "OBJECT", "properties": {"query": {"type": "STRING", "description": "Search query"}}, "required": ["query"]},
+            )
+        )
+        
+    return types.Tool(function_declarations=funcs)
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -304,10 +309,22 @@ CAPTION_SOP = {
             "items": {"type": "STRING"},
             "description": "Dimension names scoring below 4 with improvement instruction. Empty array if none.",
         },
+        "lead_magnets": {
+            "type": "ARRAY",
+            "description": "Array of resources, tools, or repos found via search and offered as lead magnets. Empty if none.",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "name": {"type": "STRING", "description": "The name of the resource (e.g. 'Claude Code GitHub Repo')"},
+                    "url": {"type": "STRING", "description": "The URL to the resource"}
+                },
+                "required": ["name", "url"]
+            }
+        },
     },
     "required": [
         "caption", "word_count", "used_hook_template", "used_cta_template", "quality_gate", "total_score",
-        "publish_ready", "revision_flags"
+        "publish_ready", "revision_flags", "lead_magnets"
     ],
 }
 
@@ -345,18 +362,37 @@ ARTICLE_SOP = {
             "items": {"type": "STRING"},
             "description": "Dimension names scoring below 4 with improvement instruction. Empty array if none.",
         },
+        "lead_magnets": {
+            "type": "ARRAY",
+            "description": "Array of resources, tools, or repos found via search and offered as lead magnets. Empty if none.",
+            "items": {
+                "type": "OBJECT",
+                "properties": {
+                    "name": {"type": "STRING", "description": "The name of the resource (e.g. 'Claude Code GitHub Repo')"},
+                    "url": {"type": "STRING", "description": "The URL to the resource"}
+                },
+                "required": ["name", "url"]
+            }
+        },
     },
     "required": [
         "caption", "word_count", "used_hook_template", "used_cta_template", "quality_gate", "total_score",
-        "publish_ready", "revision_flags"
+        "publish_ready", "revision_flags", "lead_magnets"
     ],
 }
 
-def _get_sop_for_post_type(post_type: str) -> dict:
-    """Return the correct Structured Output Parser schema based on post type."""
-    if post_type.lower() == "article":
-        return ARTICLE_SOP
-    return CAPTION_SOP
+def _get_sop_for_post_type(post_type: str, include_lead_magnet: bool = True) -> dict:
+    """Return the correct Structured Output Parser schema based on post type.
+    When include_lead_magnet is False, strips the lead_magnets field from the schema."""
+    import copy
+    base = ARTICLE_SOP if post_type.lower() == "article" else CAPTION_SOP
+    if include_lead_magnet:
+        return base
+    # Deep-copy and strip lead_magnets so the LLM doesn't try to generate them
+    sop = copy.deepcopy(base)
+    sop["properties"].pop("lead_magnets", None)
+    sop["required"] = [r for r in sop.get("required", []) if r != "lead_magnets"]
+    return sop
 
 
 def _handle_tavily_search(query: str) -> str:
@@ -420,7 +456,13 @@ def _handle_context_tool_call(fn_name: str, fn_args: dict, user_id: str) -> str:
             desc = _safe_text(brand.get("description"))
             tag = _safe_text(brand.get("tagline"))
             prods = ", ".join(_normalize_text_list(brand.get("products_services")))
-            colors = f"Primary: {brand.get('primary_color')} | Secondary: {brand.get('secondary_color')} | Accent: {brand.get('accent_color')}"
+            p_color = re.sub(r'#[0-9a-fA-F]{3,8}\b', '[Color Hidden]', brand.get('primary_color') or 'N/A')
+            p_color = re.sub(r'\b[0-9a-fA-F]{6}\b', '[Color Hidden]', p_color)
+            s_color = re.sub(r'#[0-9a-fA-F]{3,8}\b', '[Color Hidden]', brand.get('secondary_color') or 'N/A')
+            s_color = re.sub(r'\b[0-9a-fA-F]{6}\b', '[Color Hidden]', s_color)
+            a_color = re.sub(r'#[0-9a-fA-F]{3,8}\b', '[Color Hidden]', brand.get('accent_color') or 'N/A')
+            a_color = re.sub(r'\b[0-9a-fA-F]{6}\b', '[Color Hidden]', a_color)
+            colors = f"Primary: {p_color} | Secondary: {s_color} | Accent: {a_color}"
             return f"Brand: {name}\nTagline: {tag}\nDesc: {desc}\nProducts/Services: {prods}\nColors: {colors}"
             
         elif fn_name == "get_user_voice_samples":
@@ -502,24 +544,33 @@ def _build_user_context_sections(user_ctx: Dict[str, Any], color_palette: str) -
             else "Keep messaging/style aligned to this brand identity, while final image colors must still follow the selected palette rules below."
         )
 
+        p_color = re.sub(r'#[0-9a-fA-F]{3,8}\b', '[Color Hidden]', user_ctx.get('primary_color') or 'Not specified')
+        p_color = re.sub(r'\b[0-9a-fA-F]{6}\b', '[Color Hidden]', p_color)
+
+        s_color = re.sub(r'#[0-9a-fA-F]{3,8}\b', '[Color Hidden]', user_ctx.get('secondary_color') or 'Not specified')
+        s_color = re.sub(r'\b[0-9a-fA-F]{6}\b', '[Color Hidden]', s_color)
+
+        a_color = re.sub(r'#[0-9a-fA-F]{3,8}\b', '[Color Hidden]', user_ctx.get('accent_color') or 'Not specified')
+        a_color = re.sub(r'\b[0-9a-fA-F]{6}\b', '[Color Hidden]', a_color)
+
         system_lines.append(
             "## ACTIVE USER BRAND PROFILE\n"
             f"- Brand Name: {user_ctx.get('brand_name') or 'Not specified'}\n"
-            f"- Primary Color: {user_ctx.get('primary_color') or 'Not specified'}\n"
-            f"- Secondary Color: {user_ctx.get('secondary_color') or 'Not specified'}\n"
-            f"- Accent Color: {user_ctx.get('accent_color') or 'Not specified'}\n"
+            f"- Primary Color: {p_color} (NEVER use raw hex codes in text generation)\n"
+            f"- Secondary Color: {s_color} (NEVER use raw hex codes in text generation)\n"
+            f"- Accent Color: {a_color} (NEVER use raw hex codes in text generation)\n"
             f"- Font Family: {user_ctx.get('font_family') or 'Not specified'}\n"
             f"- Visual Style: {user_ctx.get('visual_style') or 'Not specified'}\n"
             f"- Brand Tagline: {user_ctx.get('brand_tagline') or 'Not specified'}\n"
             f"- Products/Services: {offerings}\n"
             f"- Brand Description: {user_ctx.get('brand_description') or 'Not specified'}\n"
-            f"- Color Rule: {color_rule}"
+            f"- Color Rule: {color_rule} - WARNING: Do NOT use explicit hex codes in any output placeholders or captions, as the image generator will render them literally as text."
         )
 
         runtime_lines.append(
             "## ACTIVE USER BRAND CONTEXT\n"
             f"- Brand: {user_ctx.get('brand_name') or 'Not specified'}\n"
-            f"- Colors: Primary {user_ctx.get('primary_color') or 'N/A'}, Secondary {user_ctx.get('secondary_color') or 'N/A'}, Accent {user_ctx.get('accent_color') or 'N/A'}\n"
+            f"- Colors: Primary {p_color}, Secondary {s_color}, Accent {a_color}\n"
             f"- Visual Style: {user_ctx.get('visual_style') or 'Not specified'}\n"
             f"- Offerings: {offerings}\n"
             f"- {color_rule}"
@@ -808,7 +859,7 @@ def call_llm(system_prompt, user_content, json_mode=False, response_schema=None,
         return f"Error: Failed to generate content via Gemini. {str(e)}"
 
 
-def generate_text_post(post_type, purpose, topic, source="topic", style="minimal", source_content=None, visual_aspect="none", visual_context_path=None, custom_topic=None, user_id="default", raw_notes=None):
+def generate_text_post(post_type, purpose, topic, source="topic", style="minimal", source_content=None, visual_aspect="none", visual_context_path=None, custom_topic=None, user_id="default", raw_notes=None, include_lead_magnet=False):
     """
     Mega-Generation: Caption + Image Prompt + Nano Banana Pro in one pass.
     """
@@ -918,14 +969,48 @@ def generate_text_post(post_type, purpose, topic, source="topic", style="minimal
             print(">>> Loaded POST_PERFORMANCE_PLAYBOOK.md for surveillance repurposing")
 
     # Prepend dynamic user persona/brand context so it governs all output
-    system_blocks = [
+    fact_checking_block = (
         "## FACT CHECKING & GROUNDING\n"
         "You MUST use the built-in Google Search tool to verify all product names, AI model versions (e.g., 'Gemini 3.5' vs 'Gemini 1.5'), release dates, and technical capabilities before writing the post.\n"
-        "If you mention a tool or version, verify it exists. Do NOT hallucinate versions or features. If a claim from the provided context (e.g., Tavily or Jina) seems incorrect or refers to non-existent models, search the web to correct it before drafting.\n\n"
-        "## LEAD MAGNET HUNTER & ENGAGEMENT BAIT\n"
-        "You have access to a `tavily_search` tool. Decide if the topic warrants a lead magnet. If it does, use the tool to search the web for the latest, most relevant tools, GitHub repos, or resources related to the topic. You may call the search tool multiple times if needed.\n"
-        "If you find a great resource, organically integrate an 'Engagement Bait' Call-To-Action at the end of the post (e.g., 'Comment [KEYWORD] and I will DM you the link to the [Resource]'). The keyword should be punchy and relevant."
-    ]
+        "If you mention a tool or version, verify it exists. Do NOT hallucinate versions or features. If a claim from the provided context (e.g., Tavily or Jina) seems incorrect or refers to non-existent models, search the web to correct it before drafting."
+    )
+    system_blocks = [fact_checking_block]
+
+    # --- LEAD MAGNET HUNTING (separate LLM — gemini-2.5-pro) ---
+    _verified_lead_magnets = []
+    if include_lead_magnet:
+        try:
+            from lead_magnet_hunter import hunt_lead_magnets
+            _verified_lead_magnets = hunt_lead_magnets(
+                topic,
+                research_context=(jina_content or "")[:2000],
+            )
+        except Exception as e:
+            print(f">>> Lead magnet hunter error: {e}")
+
+        if _verified_lead_magnets:
+            magnets_desc = "\n".join(
+                [f"- **{m['name']}**: {m['url']} — {m.get('description', '')[:100]}" for m in _verified_lead_magnets]
+            )
+            system_blocks.append(
+                "## VERIFIED LEAD MAGNETS (PRE-SEARCHED & URL-VERIFIED)\n"
+                "A separate research agent has already found and verified these resources are live and relevant.\n"
+                "You MUST integrate the BEST one organically into your CTA. Use the `get_cta_library` tool to find a lead-magnet CTA template.\n"
+                "Do NOT invent your own URLs. Only use the verified URLs below.\n"
+                "Include ALL used lead magnets in the `lead_magnets` JSON array.\n\n"
+                f"{magnets_desc}"
+            )
+            print(f">>> Injected {len(_verified_lead_magnets)} verified lead magnets into prompt")
+        else:
+            system_blocks.append(
+                "## LEAD MAGNET NOTE\n"
+                "The lead magnet hunter could not find any verified resources for this topic. "
+                "Do NOT invent or hallucinate any resource URLs. Skip the lead magnet CTA "
+                "and use a standard engagement CTA instead. Set lead_magnets to an empty array."
+            )
+            print(">>> Lead magnet hunter found 0 verified resources — skipping")
+    else:
+        print(">>> Lead magnet toggle OFF — skipping lead magnet hunter prompt block")
     if user_context_sections.get("system"):
         system_blocks.append(user_context_sections["system"])
     if system_blocks:
@@ -1020,7 +1105,7 @@ If Visual Aspect is not "image", set single_point, image_prompt to empty strings
 """
 
     # Select the correct Structured Output Parser (SOP) for this post type
-    active_sop = _get_sop_for_post_type(post_type)
+    active_sop = _get_sop_for_post_type(post_type, include_lead_magnet=include_lead_magnet)
 
     # Build final contents: image parts first (if any), then text prompt
     if visual_parts:
@@ -1030,7 +1115,10 @@ If Visual Aspect is not "image", set single_point, image_prompt to empty strings
         contents = user_content
         print(">>> Requesting combined assets from LLM (Simplified Flow)...")
     
-    raw_response = call_llm(system_prompt, contents, json_mode=True, response_schema=active_sop, tools=[_LIBRARY_TOOL_DECLARATIONS], user_id=user_id)
+    # Use function-calling tools (hook/CTA library, persona, brand) but NOT tavily
+    # Lead magnets are already pre-verified and injected into the prompt
+    generation_tools = get_tool_declarations(include_lead_magnet=False)
+    raw_response = call_llm(system_prompt, contents, json_mode=True, response_schema=active_sop, tools=[generation_tools], user_id=user_id)
     print(">>>STAGE:text_done", flush=True)
 
     if not raw_response:
@@ -1067,16 +1155,23 @@ If Visual Aspect is not "image", set single_point, image_prompt to empty strings
 
         response_data = {
             "caption": fallback_caption.strip(),
-            "single_point": topic
+            "single_point": topic,
+            "lead_magnets": []
         }
 
     caption = response_data.get("caption", "") or response_data.get("post_text", "")
 
     # Prepare final plan object
+    # Merge pre-verified lead magnets with any the LLM added
+    llm_magnets = response_data.get("lead_magnets", [])
+    # Prefer pre-verified magnets (URLs confirmed alive)
+    final_magnets = _verified_lead_magnets if _verified_lead_magnets else llm_magnets
+
     plan = {
         "caption": caption,
         "source": source,
         "analysis": analysis,
+        "lead_magnets": final_magnets,
         "asset_prompts": {}
     }
 
@@ -1110,6 +1205,7 @@ If Visual Aspect is not "image", set single_point, image_prompt to empty strings
     print(f"Final plan saved to {output_path}")
 
 if __name__ == "__main__":
+    print(">>> generate_text_post.py script started", flush=True)
     _configure_utf8_stdio()
     parser = argparse.ArgumentParser(description="Generate post assets and captions.")
     parser.add_argument("--type", required=True, help="Post type (image, video, article, etc).")
@@ -1122,6 +1218,7 @@ if __name__ == "__main__":
     parser.add_argument("--custom_topic", default=None, help="User-provided custom topic for repurposing.")
     parser.add_argument("--user_id", default="default", help="Active user ID for tenant-scoped persona/brand injection.")
     parser.add_argument("--raw_notes", default=None, help="Path to raw weekly notes file for Journalist Workflow (storytelling).")
+    parser.add_argument("--include_lead_magnet", action="store_true", help="Allow LLM to search web for lead magnets.")
 
     args = parser.parse_args()
 
@@ -1145,5 +1242,6 @@ if __name__ == "__main__":
         visual_context_path=args.visual_context,
         custom_topic=args.custom_topic,
         user_id=args.user_id,
-        raw_notes=_raw_notes
+        raw_notes=_raw_notes,
+        include_lead_magnet=args.include_lead_magnet
     )

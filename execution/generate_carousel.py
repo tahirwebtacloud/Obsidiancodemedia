@@ -34,8 +34,8 @@ import io
 import requests
 
 # Force UTF-8 for stdout/stderr
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True, write_through=True)
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', line_buffering=True, write_through=True)
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -92,7 +92,7 @@ def _handle_tavily_search(query: str) -> str:
     except Exception as e:
         return f"Exception calling Tavily: {str(e)}"
 
-def call_llm(system_prompt, user_content, json_output=True, allow_tavily=False):
+def call_llm(system_prompt, user_content, json_output=True, allow_tavily=False, include_lead_magnet=False):
     """Calls Gemini LLM"""
     api_key = os.getenv("GOOGLE_GEMINI_API_KEY")
     model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.1-pro-preview")
@@ -105,7 +105,7 @@ def call_llm(system_prompt, user_content, json_output=True, allow_tavily=False):
         client = genai.Client(api_key=api_key)
 
         tools = [types.Tool(google_search=types.GoogleSearch())]
-        if allow_tavily:
+        if allow_tavily and include_lead_magnet:
             tavily_decl = types.FunctionDeclaration(
                 name="tavily_search",
                 description="Search the web for tools, latest resources, and GitHub repos. Use this to find lead magnets.",
@@ -356,7 +356,7 @@ Write {len(mid_slides_outline)} mid slides (numbers 2 through {len(mid_slides_ou
         print(f"❌ Failed to parse content JSON: {e}")
         return None
 
-def generate_caption(topic, purpose, carousel_plan, slides_content, user_context_sections=None):
+def generate_caption(topic, purpose, carousel_plan, slides_content, user_context_sections=None, include_lead_magnet=False, verified_lead_magnets=None):
     """Phase 3: Generate LinkedIn caption AFTER all slides are ready"""
     print("\n" + "="*60)
     print("PHASE 3: GENERATING CAPTION")
@@ -380,9 +380,28 @@ def generate_caption(topic, purpose, carousel_plan, slides_content, user_context
     if prefix_blocks:
         system_prompt = "\n\n---\n\n".join(prefix_blocks + [system_prompt])
 
-    system_prompt += "\n\n## LEAD MAGNET HUNTER & ENGAGEMENT BAIT\n"
-    system_prompt += "You have access to a `tavily_search` tool. Decide if the carousel topic warrants a lead magnet. If it does, use the tool to search the web for the latest, most relevant tools, GitHub repos, or resources related to the topic. You may call the search tool multiple times if needed.\n"
-    system_prompt += "If you find a great resource, organically integrate an 'Engagement Bait' Call-To-Action at the end of the caption (e.g., 'Comment [KEYWORD] and I will DM you the link to the [Resource]'). The keyword should be punchy and relevant."
+    if include_lead_magnet and verified_lead_magnets:
+        magnets_desc = "\n".join(
+            [f"- **{m['name']}**: {m['url']} — {m.get('description', '')[:100]}" for m in verified_lead_magnets]
+        )
+        system_prompt += (
+            "\n\n## VERIFIED LEAD MAGNETS (PRE-SEARCHED & URL-VERIFIED)\n"
+            "A separate research agent has already found and verified these resources are live and relevant.\n"
+            "Integrate the BEST one organically as an 'Engagement Bait' CTA at the end of the caption "
+            "(e.g., 'Comment [KEYWORD] and I will DM you the link to the [Resource]').\n"
+            "Do NOT invent your own URLs. Only use the verified URLs below.\n\n"
+            f"{magnets_desc}"
+        )
+        print(f">>> Injected {len(verified_lead_magnets)} verified lead magnets into carousel caption prompt")
+    elif include_lead_magnet:
+        system_prompt += (
+            "\n\n## LEAD MAGNET NOTE\n"
+            "The lead magnet hunter could not find any verified resources for this topic. "
+            "Do NOT invent or hallucinate any resource URLs. Use a standard engagement CTA instead."
+        )
+        print(">>> No verified lead magnets for carousel caption")
+    else:
+        print(">>> Lead magnet toggle OFF — skipping lead magnet hunter prompt block for carousel")
 
     slides_summary = "\n".join([f"Slide {s.get('number')}: {s.get('title')}" for s in slides_content])
 
@@ -402,7 +421,8 @@ Write a scroll-stopping LinkedIn caption for this carousel.
 OUTPUT: Just the caption text (no JSON, no formatting).
 """
 
-    caption = call_llm(system_prompt, user_content, json_output=False, allow_tavily=True)
+    # Lead magnets are pre-verified, no need for Tavily in the caption LLM
+    caption = call_llm(system_prompt, user_content, json_output=False, allow_tavily=False, include_lead_magnet=False)
     
     if caption:
         print(f"\n✅ CAPTION GENERATED ({len(caption)} chars)")
@@ -444,8 +464,21 @@ def generate_carousel(topic, purpose="authority", visual_context_path=None, user
         print("❌ Content generation failed. Aborting.")
         return
     
+    # LEAD MAGNET HUNTING (separate LLM — gemini-2.5-pro)
+    _verified_lead_magnets = []
+    if include_lead_magnet:
+        try:
+            sys.path.insert(0, os.path.dirname(__file__))
+            from lead_magnet_hunter import hunt_lead_magnets
+            _verified_lead_magnets = hunt_lead_magnets(
+                topic,
+                research_context=(research_data or "")[:2000],
+            )
+        except Exception as e:
+            print(f">>> Lead magnet hunter error (carousel): {e}")
+
     # PHASE 3: Generate caption (AFTER slides)
-    caption = generate_caption(topic, purpose, carousel_plan, slides_content, user_context_sections=user_context_sections)
+    caption = generate_caption(topic, purpose, carousel_plan, slides_content, user_context_sections=user_context_sections, include_lead_magnet=include_lead_magnet, verified_lead_magnets=_verified_lead_magnets)
     
     # Save carousel layout (visible to user for manual verification)
     layout_path = ".tmp/carousel_layout.json"

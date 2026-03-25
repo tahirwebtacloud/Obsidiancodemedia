@@ -1,3 +1,30 @@
+"""
+viral_research_apify.py
+-----------------------
+LinkedIn viral post research using Apify actors.
+
+Actors Used:
+  - datadoping/linkedin-post-reactions-scraper-no-cookie — extracts reactions (likes, loves, etc.)
+  - apimaestro/linkedin-post-comments-replies-engagements-scraper-no-cookies — extracts comments
+
+Capabilities:
+  - Scrape multiple LinkedIn post URLs in parallel
+  - Extract post text, images, carousels, video URLs
+  - Fetch high-resolution OG images (bypasses Apify thumbnails)
+  - Parse LinkedIn document/carousel manifests for full slide extraction
+  - Decode URN timestamps to get exact posting dates
+
+Output Schema:
+  - .tmp/viral_research.json — array of posts with:
+    - post_url, author, text, reactions, comments
+    - image_urls, carousel_slides, video_url
+    - posted_at, engagement_metrics
+
+Usage:
+  Called by server.py via /api/research/viral endpoint.
+  Results feed into repurpose modal for content transformation.
+"""
+
 import os
 import json
 import re

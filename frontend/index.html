@@ -11,40 +11,101 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=11">
+    <link rel="stylesheet" href="login.css?v=1">
+    <!-- Font Awesome for social icons on login -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- DOMPurify for XSS Protection -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 </head>
 
 <body>
     <!-- Background Elements -->
     <div class="background-glow"></div>
 
-    <!-- Login Overlay -->
-    <div id="login-overlay" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: var(--bg-primary, #0E0E0E); justify-content: center; align-items: center; align-content: center;">
-        <div class="form">
-            <div class="flex-column" style="text-align: center;">
-                <h2 style="color: var(--brand-primary, #F9C74F); margin-bottom: 20px; font-weight: 600; font-family: 'Outfit', sans-serif;">Obsidian Logic</h2>
-                <p style="color: var(--text-secondary); margin-bottom: 30px; font-family: 'Inter', sans-serif;">Authenticate to access your workspace.</p>
-            </div>
-            
-            <button id="firebase-login-btn" class="button-submit">
-                <div class="flex-row" style="justify-content: center; gap: 12px; align-items: center;">
-                    <span style="display: flex; align-items: center;">
-                        <svg viewBox="0 0 24 24" style="width: 24px; height: 24px;" xmlns="http://www.w3.org/2000/svg">
+    <!-- Login Overlay — Interactive Split-Panel -->
+    <div id="login-overlay">
+        <canvas id="login-canvas"></canvas>
+
+        <div class="login-container" id="login-container">
+            <!-- ══ Sign Up Form (left, hidden initially) ══ -->
+            <div class="login-form-container login-sign-up-container">
+                <div class="login-form">
+                    <img src="logo.png" alt="Obsidian Logic" class="login-logo-mark">
+                    <h1>Get Started</h1>
+                    <div class="login-social-container">
+                        <a href="#" class="social google-social-btn"><i class="fab fa-google"></i></a>
+                    </div>
+                    <span class="form-hint">or use your email for registration</span>
+                    <input type="text" placeholder="Name" id="signup-name" class="login-input" />
+                    <input type="email" placeholder="Email" id="signup-email" class="login-input" />
+                    <input type="password" placeholder="Password" id="signup-password" class="login-input" />
+                    <button class="login-btn action-submit-btn" id="email-signup-btn" style="margin-top: 20px; width: 100%; max-width: 280px;">Sign Up</button>
+                    <div class="login-divider"><span>or</span></div>
+                    <button class="google-signin-btn" id="firebase-signup-btn">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                             <path d="M1 1h22v22H1z" fill="none"/>
                         </svg>
-                    </span>
-                    <span style="font-size: 16px;">Sign in with Google</span>
+                        Sign up with Google
+                    </button>
+                    <button class="mobile-toggle">Already have an account? Sign In</button>
                 </div>
-            </button>
+            </div>
+
+            <!-- ══ Sign In Form (left, visible initially) ══ -->
+            <div class="login-form-container login-sign-in-container">
+                <div class="login-form">
+                    <img src="logo.png" alt="Obsidian Logic" class="login-logo-mark">
+                    <h1>Welcome Back</h1>
+                    <div class="login-social-container">
+                        <a href="#" class="social google-social-btn"><i class="fab fa-google"></i></a>
+                    </div>
+                    <span class="form-hint">or use your account</span>
+                    <input type="email" placeholder="Email" id="signin-email" class="login-input" />
+                    <input type="password" placeholder="Password" id="signin-password" class="login-input" />
+                    <a href="#" class="form-link">Forgot your password?</a>
+                    <button class="login-btn action-submit-btn" id="email-signin-btn" style="margin-bottom: 20px; width: 100%; max-width: 280px;">Sign In</button>
+                    <div class="login-divider"><span>or</span></div>
+                    <button class="google-signin-btn" id="firebase-login-btn">
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                            <path d="M1 1h22v22H1z" fill="none"/>
+                        </svg>
+                        Sign in with Google
+                    </button>
+                    <button class="mobile-toggle">New here? Create Account</button>
+                </div>
+            </div>
+
+            <!-- ══ Sliding Overlay ══ -->
+            <div class="login-overlay-container">
+                <div class="login-overlay">
+                    <div class="login-overlay-panel login-overlay-left">
+                        <span class="overlay-brand">Obsidian Logic</span>
+                        <h1>Welcome Back!</h1>
+                        <p class="overlay-desc">Sign in to access your content automation workspace and pick up where you left off.</p>
+                        <button class="login-btn ghost" id="login-signIn">Sign In</button>
+                    </div>
+                    <div class="login-overlay-panel login-overlay-right">
+                        <span class="overlay-brand">Obsidian Logic</span>
+                        <h1>Hello, Friend!</h1>
+                        <p class="overlay-desc">Enter your details and start automating your LinkedIn content today.</p>
+                        <button class="login-btn ghost" id="login-signUp">Sign Up</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -54,9 +115,9 @@
         <aside class="sidebar">
             <header class="sidebar-header">
                 <div class="logo" style="margin-bottom: 0;">
-                    <img src="logo.png" alt="Obsidian Logic Logo" class="brand-logo">
+                    <img id="app-brand-logo" src="logo.png" alt="Obsidian Logic Logo" class="brand-logo">
                     <div class="logo-text" style="display: flex; flex-direction: column; gap: 2px;">
-                        <h1 style="margin: 0;">Obsidian Logic</h1>
+                        <h1 id="app-brand-name" style="margin: 0;">Obsidian Logic</h1>
                         <p class="subtitle" style="margin: 0; display: flex; justify-content: space-between; align-items: center;">
                             Content Automation
                             <button id="firebase-logout-btn" style="display: none; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: var(--text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; align-items: center; gap: 4px; transition: all 0.2s;" onmouseover="this.style.color='var(--brand-primary)'; this.style.borderColor='var(--brand-primary)'" onmouseout="this.style.color='var(--text-secondary)'; this.style.borderColor='rgba(255,255,255,0.1)'">
@@ -75,9 +136,9 @@
                     <button id="mode-dropdown-btn" style="
                         width: 100%;
                         display: flex; align-items: center; justify-content: space-between;
-                        background: rgba(255,255,255,0.05);
-                        border: 1px solid rgba(255,255,255,0.12);
-                        color: #ffffff;
+                        background: var(--bg-elevated);
+                        border: 1px solid var(--border);
+                        color: var(--text-primary);
                         padding: 8px 16px;
                         border-radius: 8px;
                         font-size: 0.9rem; font-weight: 500;
@@ -86,8 +147,8 @@
                         transition: border-color 0.2s, background 0.2s;
                         gap: 8px;
                     "
-                    onmouseover="this.style.borderColor='rgba(249,199,79,0.4)'"
-                    onmouseout="this.style.borderColor='rgba(255,255,255,0.12)'">
+                    onmouseover="this.style.borderColor='var(--border-hover)'"
+                    onmouseout="this.style.borderColor='var(--border)'">
                         <span id="mode-dropdown-label" style="display:flex;align-items:center;gap:8px;">
                             <i data-lucide="sparkles" style="width:16px;height:16px;color:var(--brand-primary);flex-shrink:0;"></i>
                             Studio
@@ -102,8 +163,8 @@
                         top: calc(100% + 6px);
                         left: 0; right: 0;
                         min-width: 260px;
-                        background: #1a1a1a;
-                        border: 1px solid rgba(255,255,255,0.12);
+                        background: var(--bg-elevated);
+                        border: 1px solid var(--border);
                         border-radius: 10px;
                         overflow: hidden;
                         z-index: 9999;
@@ -122,12 +183,12 @@
                         "
                         onmouseover="this.style.background='rgba(255,255,255,0.06)'"
                         onmouseout="this.style.background='transparent'">
-                            <span style="width:36px;height:36px;border-radius:8px;background:rgba(249,199,79,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <span style="width:36px;height:36px;border-radius:8px;background:var(--brand-tint-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                 <i data-lucide="sparkles" style="width:18px;height:18px;color:var(--brand-primary);"></i>
                             </span>
                             <span style="min-width:0;">
-                                <span style="display:block;font-size:0.9rem;font-weight:700;color:#ffffff;font-family:'Outfit',sans-serif;white-space:nowrap;letter-spacing:0.01em;">Studio</span>
-                                <span style="display:block;font-size:0.73rem;color:#9a9082;margin-top:3px;white-space:nowrap;">Create and generate LinkedIn content</span>
+                                <span style="display:block;font-size:0.9rem;font-weight:700;color:var(--text-primary);font-family:'Outfit',sans-serif;white-space:nowrap;letter-spacing:0.01em;">Studio</span>
+                                <span style="display:block;font-size:0.73rem;color:var(--text-tertiary);margin-top:3px;white-space:nowrap;">Create and generate LinkedIn content</span>
                             </span>
                         </button>
 
@@ -143,12 +204,12 @@
                         "
                         onmouseover="this.style.background='rgba(255,255,255,0.06)'"
                         onmouseout="this.style.background='transparent'">
-                            <span style="width:36px;height:36px;border-radius:8px;background:rgba(249,199,79,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <span style="width:36px;height:36px;border-radius:8px;background:var(--brand-tint-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                 <i data-lucide="trophy" style="width:18px;height:18px;color:var(--brand-primary);"></i>
                             </span>
                             <span style="min-width:0;">
-                                <span style="display:block;font-size:0.9rem;font-weight:700;color:#ffffff;font-family:'Outfit',sans-serif;white-space:nowrap;letter-spacing:0.01em;">Win Lab</span>
-                                <span style="display:block;font-size:0.73rem;color:#9a9082;margin-top:3px;white-space:nowrap;">Research viral posts and competitors</span>
+                                <span style="display:block;font-size:0.9rem;font-weight:700;color:var(--text-primary);font-family:'Outfit',sans-serif;white-space:nowrap;letter-spacing:0.01em;">Win Lab</span>
+                                <span style="display:block;font-size:0.73rem;color:var(--text-tertiary);margin-top:3px;white-space:nowrap;">Research viral posts and competitors</span>
                             </span>
                         </button>
                     </div>
@@ -171,20 +232,30 @@
                 </button>
             </nav>
 
+            <!-- Dashboard Sub-Tab Navigation (persistent, shown in dashboard mode) -->
+            <div id="dashboard-sub-nav" class="sub-tab-nav" style="display: none;">
+                <button class="sub-tab-btn active" data-sub-tab="surveillance">
+                    <span class="sub-tab-icon"><i data-lucide="activity"></i></span>
+                    <span class="sub-tab-title">Surveillance</span>
+                </button>
+                <button class="sub-tab-btn" data-sub-tab="drafts">
+                    <span class="sub-tab-icon"><i data-lucide="file-text"></i></span>
+                    <span class="sub-tab-title">Drafts</span>
+                </button>
+                <button class="sub-tab-btn" data-sub-tab="brand-assets">
+                    <span class="sub-tab-icon"><i data-lucide="palette"></i></span>
+                    <span class="sub-tab-title">Brand</span>
+                </button>
+                <button class="sub-tab-btn" data-sub-tab="crm-hub">
+                    <span class="sub-tab-icon"><i data-lucide="users"></i></span>
+                    <span class="sub-tab-title">CRM</span>
+                </button>
+            </div>
+
             <!-- INPUT FORMS (Scrollable) -->
             <div class="sidebar-content">
-                <!-- Dashboard Tab -->
+                <!-- Dashboard Tab (Surveillance + Drafts sub-panes) -->
                 <div id="tab-dashboard" class="tab-pane">
-                    <div class="sub-tab-nav">
-                        <button class="sub-tab-btn active" data-sub-tab="surveillance">
-                            <span class="sub-tab-icon"><i data-lucide="activity"></i></span>
-                            <span class="sub-tab-title">Surveillance</span>
-                        </button>
-                        <button class="sub-tab-btn" data-sub-tab="drafts">
-                            <span class="sub-tab-icon"><i data-lucide="file-text"></i></span>
-                            <span class="sub-tab-title">Drafts</span>
-                        </button>
-                    </div>
                     <div class="sub-sidebar-content">
                         <!-- Surveillance Sub-tab -->
                         <div id="sub-tab-surveillance" class="sub-tab-pane active" style="gap: 20px; display: flex; flex-direction: column;">
@@ -244,7 +315,7 @@
                                     Filter by Status
                                 </label>
                                 <div id="drafts-filter-pills" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                                    <button class="draft-filter-pill active" data-filter="all" style="padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(249,199,79,0.15); color: var(--brand-primary); font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: var(--font-body); transition: all 0.2s;">All</button>
+                                    <button class="draft-filter-pill active" data-filter="all" style="padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.15); background: rgba(var(--brand-primary-rgb),0.15); color: var(--brand-primary); font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: var(--font-body); transition: all 0.2s;">All</button>
                                     <button class="draft-filter-pill" data-filter="draft" style="padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.5); font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: var(--font-body); transition: all 0.2s;">Drafts</button>
                                     <button class="draft-filter-pill" data-filter="scheduled" style="padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.5); font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: var(--font-body); transition: all 0.2s;">Scheduled</button>
                                     <button class="draft-filter-pill" data-filter="published" style="padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.5); font-size: 0.8rem; font-weight: 600; cursor: pointer; font-family: var(--font-body); transition: all 0.2s;">Published</button>
@@ -351,6 +422,7 @@
                                 <label>Color Palette</label>
                                 <div class="select-wrapper">
                                     <select name="color_palette" id="color-palette">
+                                        <option value="brand_kit">Brand Kit (My Brand)</option>
                                         <option value="brand">Obsidian Brand</option>
                                         <option value="executive">Executive Navy</option>
                                         <option value="coral">Bold Coral</option>
@@ -385,21 +457,76 @@
                             </div>
 
                             <div class="form-group">
-                                <label>Topic / Theme</label>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <label>Topic / Theme</label>
+                                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.8rem; font-weight: normal; color: var(--text-secondary); margin-bottom: 6px;">
+                                        <input type="checkbox" id="auto-topic-toggle" name="auto_topic" style="width: 14px; height: 14px; margin: 0; cursor: pointer;">
+                                        Auto-Generate
+                                    </label>
+                                </div>
                                 <input type="text" name="topic" id="topic" placeholder="e.g. AI Trends 2026"
                                     class="dark-input" required>
+                                <p id="auto-topic-hint" style="display: none; font-size: 0.75rem; color: var(--text-tertiary); margin-top: 4px; line-height: 1.4;">
+                                    Topic will be auto-generated based on your Persona and Brand Profile.
+                                </p>
+                            </div>
+
+                            <div class="form-group" style="margin-top: 10px;">
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                    <label class="switch">
+                                        <input type="checkbox" id="include-lead-magnet" name="include_lead_magnet">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span style="font-size: 0.75rem; font-weight: 700; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; letter-spacing: 0.05em;">Include Lead Magnet</span>
+                                </div>
+                                <p style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 4px; line-height: 1.4;">
+                                    Searches the web for a relevant resource (e.g. GitHub repo) to offer as an engagement bait CTA.
+                                </p>
+                            </div>
+
+                            <div class="form-group" id="raw-notes-group" style="display: none;">
+                                <label>
+                                    Raw Weekly Notes
+                                    <span style="font-size: 0.75rem; color: var(--text-tertiary); margin-left: 6px;">(optional, Journalist Workflow)</span>
+                                </label>
+                                <textarea id="raw-notes" name="raw_notes" class="dark-input" rows="4"
+                                    placeholder="Dump your raw notes here... What happened this week? What was the friction? What was the epiphany?"
+                                    style="width: 100%; box-sizing: border-box; resize: vertical; font-size: 0.9rem; line-height: 1.5;"></textarea>
+                            </div>
+
+                            <div class="form-group" style="margin-top: 10px;">
+                                <label for="time-range" style="font-size: 0.75rem; font-weight: 700; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; display: block;">Research Time Range</label>
+                                <select id="time-range" name="time_range" class="dark-input">
+                                    <option value="day" selected>Last 24 hours (Recommended)</option>
+                                    <option value="week">Last week</option>
+                                    <option value="month">Last month</option>
+                                    <option value="year">Last year</option>
+                                </select>
+                                <p style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 4px; line-height: 1.4;">
+                                    How far back to search for source material. Wider ranges find more results but may include older content.
+                                </p>
+                            </div>
+
+                            <div class="form-group" id="deep-research-group" style="margin-top: 10px;">
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                    <label class="switch">
+                                        <input type="checkbox" id="deep-research-toggle">
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span style="font-size: 0.75rem; font-weight: 700; color: rgba(255, 255, 255, 0.6); text-transform: uppercase; letter-spacing: 0.05em;">Enable Deep Research (2-LLM)</span>
+                                </div>
+                                <p style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 4px; line-height: 1.4;">
+                                    Runs a dedicated AI researcher to clean and synthesize noisy social media data before writing. Slower but produces much higher quality insights.
+                                </p>
                             </div>
 
                             <button type="submit" id="submit-btn" class="primary-btn">
                                 <span class="btn-content">Generate</span>
-                                <div class="loader">
-                                    <div></div>
-                                    <div></div>
-                                    <div></div>
-                                    <div></div>
-                                    <div></div>
-                                    <div></div>
-                                </div>
+                                <ul class="btn-loader" aria-hidden="true">
+                                    <li class="ball"></li>
+                                    <li class="ball"></li>
+                                    <li class="ball"></li>
+                                </ul>
                                 <i data-lucide="arrow-right" class="btn-icon"></i>
                             </button>
                         </div>
@@ -418,7 +545,7 @@
                             <span class="sub-tab-title">Competitor</span>
                         </button>
                         <button class="sub-tab-btn" data-sub-tab="youtube">
-                            <span class="sub-tab-icon"><i data-lucide="youtube"></i></span>
+                            <span class="sub-tab-icon"><i data-lucide="play"></i></span>
                             <span class="sub-tab-title">YouTube</span>
                         </button>
                     </div>
@@ -482,6 +609,311 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Brand Assets Tab -->
+                <div id="tab-brand-assets" class="tab-pane">
+                    <div class="form-section" style="margin-top: 0;">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600;">
+                                <i data-lucide="palette" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                                Brand Identity
+                            </label>
+                            <p style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 4px; margin-bottom: 12px;">
+                                Extract your brand colors, fonts, and visual style from your website URL.
+                            </p>
+                        </div>
+
+                        <!-- URL Input -->
+                        <div class="form-group">
+                            <label>Website URL</label>
+                            <input type="url" id="brand-url-input" class="dark-input glass-input" 
+                                placeholder="https://yourcompany.com" style="width: 100%; display: block;">
+                            <button type="button" id="extract-brand-btn" class="primary-btn" 
+                                style="width: 100%; margin-top: 8px; padding: 10px 16px; justify-content: center;">
+                                <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+                                Analyze
+                            </button>
+                        </div>
+
+                        <!-- Loading State -->
+                        <div id="brand-extract-loading" style="display: none; text-align: center; padding: 20px;">
+                            <div class="loading-spinner" style="margin: 0 auto 12px;"></div>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">Analyzing website...</p>
+                        </div>
+
+                        <!-- Brand Preview Panel -->
+                        <div id="brand-preview-panel" style="display: none; padding-top: 4px;">
+
+                            <!-- Section header -->
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                                <div style="width: 7px; height: 7px; border-radius: 50%; background: #4ade80; flex-shrink: 0;"></div>
+                                <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em;">Extracted Brand Assets</span>
+                            </div>
+
+                            <!-- Brand Name -->
+                            <div style="margin-bottom: 14px;">
+                                <label style="display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px;">Brand Name</label>
+                                <input type="text" id="brand-name-input" class="dark-input" placeholder="Your Company Name" style="width: 100%;">
+                            </div>
+
+                            <!-- Brand Colors — stacked rows -->
+                            <div style="margin-bottom: 14px;">
+                                <label style="display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px;">Brand Colors</label>
+                                <div style="display: flex; flex-direction: column; gap: 8px;">
+                                    <!-- Primary -->
+                                    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 9px;">
+                                        <input type="color" id="primary-color-picker" style="width: 34px; height: 34px; border: none; background: none; border-radius: 6px; cursor: pointer; flex-shrink: 0; padding: 0;">
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-tertiary); margin-bottom: 3px;">Primary</div>
+                                            <input type="text" id="primary-color-text" class="dark-input" placeholder="#F9C74F" style="font-family: monospace; font-size: 0.78rem; padding: 4px 8px !important; height: auto !important; width: 100%;">
+                                        </div>
+                                    </div>
+                                    <!-- Secondary -->
+                                    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 9px;">
+                                        <input type="color" id="secondary-color-picker" style="width: 34px; height: 34px; border: none; background: none; border-radius: 6px; cursor: pointer; flex-shrink: 0; padding: 0;">
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-tertiary); margin-bottom: 3px;">Secondary</div>
+                                            <input type="text" id="secondary-color-text" class="dark-input" placeholder="#1a1a1a" style="font-family: monospace; font-size: 0.78rem; padding: 4px 8px !important; height: auto !important; width: 100%;">
+                                        </div>
+                                    </div>
+                                    <!-- Accent -->
+                                    <div style="display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 9px;">
+                                        <input type="color" id="accent-color-picker" style="width: 34px; height: 34px; border: none; background: none; border-radius: 6px; cursor: pointer; flex-shrink: 0; padding: 0;">
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-tertiary); margin-bottom: 3px;">Accent</div>
+                                            <input type="text" id="accent-color-text" class="dark-input" placeholder="#FCF0D5" style="font-family: monospace; font-size: 0.78rem; padding: 4px 8px !important; height: auto !important; width: 100%;">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top: 10px; padding: 9px 10px; border: 1px dashed rgba(255,255,255,0.12); border-radius: 9px; background: rgba(255,255,255,0.02);">
+                                    <div style="font-size: 0.66rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 7px;">Extracted Website Palette</div>
+                                    <div id="extracted-colors-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                        <span style="font-size: 0.72rem; color: var(--text-muted);">Analyze a URL to load full palette</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Font Family -->
+                            <div style="margin-bottom: 14px;">
+                                <label style="display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px;">Font Family</label>
+                                <input type="text" id="font-family-input" class="dark-input" placeholder="Roboto, Inter, Montserrat..." style="width: 100%;">
+
+                                <div style="margin-top: 10px; padding: 9px 10px; border: 1px dashed rgba(255,255,255,0.12); border-radius: 9px; background: rgba(255,255,255,0.02);">
+                                    <div style="font-size: 0.66rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 7px;">Extracted Website Fonts</div>
+                                    <div id="extracted-fonts-list" style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                        <span style="font-size: 0.72rem; color: var(--text-muted);">Analyze a URL to load detected fonts</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Visual Style -->
+                            <div style="margin-bottom: 14px;">
+                                <label style="display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px;">Visual Style</label>
+                                <textarea id="visual-style-input" class="dark-input" rows="3" placeholder="Modern, minimalist, bold..." style="width: 100%; resize: vertical;"></textarea>
+                            </div>
+
+                            <!-- Tone of Voice -->
+                            <div style="margin-bottom: 14px;">
+                                <label style="display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px;">Tone of Voice</label>
+                                <textarea id="tone-of-voice-input" class="dark-input" rows="3" placeholder="Professional, playful, authoritative..." style="width: 100%; resize: vertical;"></textarea>
+                            </div>
+
+                            <!-- Logo URL -->
+                            <div style="margin-bottom: 14px;">
+                                <label style="display: block; font-size: 0.7rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px;">Logo URL</label>
+                                <input type="url" id="logo-url-input" class="dark-input" placeholder="https://..." style="width: 100%;">
+                            </div>
+
+                            <!-- Products & Services -->
+                            <div style="margin-bottom: 18px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                                    <label style="font-size: 0.7rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em;">Products & Services</label>
+                                    <button type="button" id="add-product-btn" style="padding: 3px 10px; font-size: 0.7rem; font-weight: 600; background: rgba(var(--brand-primary-rgb),0.1); border: 1px solid rgba(var(--brand-primary-rgb),0.3); color: var(--brand-primary); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                        <i data-lucide="plus" style="width: 10px; height: 10px;"></i> Add
+                                    </button>
+                                </div>
+                                <div id="products-services-list" style="display: flex; flex-direction: column; gap: 6px;">
+                                    <div style="padding: 10px 12px; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                                        <span style="font-size: 0.75rem; color: var(--text-tertiary);">Analyze a URL to auto-detect offerings</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Preview -->
+                            <div style="margin-bottom: 18px; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden;">
+                                <div style="padding: 10px 14px; background: rgba(255,255,255,0.04); border-bottom: 1px solid rgba(255,255,255,0.08);">
+                                    <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.07em;">Live Preview</span>
+                                </div>
+                                <div id="brand-live-preview" style="padding: 20px; text-align: center;">
+                                    <h3 style="margin: 0 0 6px; font-size: 0.95rem; font-weight: 700;">Your Brand Preview</h3>
+                                    <p style="font-size: 0.8rem; opacity: 0.75; margin: 0 0 14px;">This is how your brand will appear</p>
+                                    <button style="padding: 7px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 600; letter-spacing: 0.02em;">
+                                        Sample Button
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+                                <button type="button" id="save-brand-btn" class="primary-btn" style="flex: 1; justify-content: center;">
+                                    <i data-lucide="save" style="width: 14px; height: 14px;"></i>
+                                    Save & Apply
+                                </button>
+                                <button type="button" id="reset-brand-btn" style="padding: 10px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: var(--text-secondary); border-radius: 8px; cursor: pointer; font-size: 0.82rem; display: flex; align-items: center; gap: 6px; transition: all 0.2s; white-space: nowrap;" onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='var(--text-primary)'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='var(--text-secondary)'">
+                                    <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i>
+                                    Reset
+                                </button>
+                            </div>
+                            <div id="brand-save-status" style="text-align: center; font-size: 0.8rem; opacity: 0; transition: opacity 0.3s; margin-top: 6px; min-height: 20px;"></div>
+                        </div>
+
+                        <!-- File Upload Section -->
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label style="display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600;">
+                                <i data-lucide="upload" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                                Upload Brand Files
+                            </label>
+                            <p style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 4px; margin-bottom: 12px;">
+                                Upload logo (SVG/PNG), brand guidelines (PDF), or color schemes (JSON).
+                            </p>
+                            
+                            <div id="brand-file-upload-zone" class="upload-zone" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.3s;">
+                                <i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 12px;"></i>
+                                <p style="color: var(--text-secondary); margin-bottom: 8px;">Drag & drop files here</p>
+                                <p style="font-size: 0.75rem; color: var(--text-muted);">or click to browse</p>
+                                <input type="file" id="brand-file-input" multiple accept=".svg,.png,.jpg,.jpeg,.pdf,.json" style="display: none;">
+                            </div>
+                            <div id="brand-file-list" style="margin-top: 12px;"></div>
+                        </div>
+
+                        <!-- Save Status -->
+                        <div id="brand-save-status" style="margin-top: 16px; text-align: center; opacity: 0; transition: opacity 0.3s;"></div>
+                    </div>
+                </div>
+
+                <!-- Voice Engine Tab (Rebuilt) -->
+                <div id="tab-voice-engine" class="tab-pane">
+                    <div class="form-section" style="margin-top: 0;">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600;">
+                                <i data-lucide="user" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                                User Profile
+                            </label>
+                            <p style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 4px; margin-bottom: 12px;">
+                                Manage your LinkedIn profile, data exports, and AI persona.
+                            </p>
+                        </div>
+
+                        <!-- LinkedIn Profile Scrape -->
+                        <div id="voice-scrape-section" class="form-group" style="margin-bottom: 16px;">
+                            <label style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="link" style="width: 14px; height: 14px;"></i>
+                                Your LinkedIn Profile URL
+                            </label>
+                            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                                <input type="url" id="voice-linkedin-url" placeholder="https://linkedin.com/in/yourprofile" style="flex: 1; padding: 10px 14px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem; font-family: var(--font-body);">
+                                <button type="button" id="voice-scrape-btn" class="primary-btn" style="padding: 10px 16px; white-space: nowrap;">
+                                    <i data-lucide="scan" style="width: 14px; height: 14px;"></i> Scrape
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- LinkedIn Import Status -->
+                        <div id="voice-import-status" class="glass-card" style="padding: 16px; margin-bottom: 16px; display: none;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <i data-lucide="check-circle" style="width: 24px; height: 24px; color: var(--success);"></i>
+                                <div style="flex: 1;">
+                                    <p style="font-weight: 600; color: var(--text-primary); margin: 0;">LinkedIn Data Imported</p>
+                                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 4px 0 0 0;">Your persona is ready. CRM contacts populated.</p>
+                                </div>
+                            </div>
+                            <button id="voice-reupload-btn" type="button" style="margin-top: 12px; width: 100%; padding: 8px 12px; background: rgba(249,199,79,0.12); border: 1px solid rgba(249,199,79,0.3); border-radius: 8px; color: var(--brand-primary); font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; font-family: var(--font-body);">
+                                <i data-lucide="upload" style="width: 13px; height: 13px;"></i>
+                                Re-upload LinkedIn ZIP
+                            </button>
+                        </div>
+
+                        <!-- ZIP Upload Section -->
+                        <div id="voice-upload-section">
+                            <div class="form-group">
+                                <label style="font-size: 0.8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 8px;">
+                                    <i data-lucide="upload" style="width: 14px; height: 14px;"></i>
+                                    Upload LinkedIn Export (.zip)
+                                </label>
+                                <p style="font-size: 0.7rem; color: var(--text-muted); margin: 4px 0 8px 0;">
+                                    Download from LinkedIn Settings &rarr; Data Privacy &rarr; Get a copy of your data
+                                </p>
+
+                                <div id="linkedin-upload-zone" class="upload-zone" style="border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.3s;">
+                                    <i data-lucide="file-archive" style="width: 40px; height: 40px; color: var(--text-muted); margin-bottom: 12px;"></i>
+                                    <p style="color: var(--text-secondary); margin-bottom: 8px; font-size: 0.9rem;">Drop your LinkedIn export ZIP(s) here</p>
+                                    <p style="font-size: 0.75rem; color: var(--text-muted);">or click to browse &mdash; multiple ZIPs supported</p>
+                                    <input type="file" id="linkedin-file-input" accept=".zip" multiple style="display: none;">
+                                </div>
+                                <div id="linkedin-file-list" style="display:none; margin-top:10px; font-size:0.78rem; color:var(--text-secondary);"></div>
+                            </div>
+                        </div>
+
+                        <!-- Upload Progress -->
+                        <div id="voice-upload-progress" style="display: none; margin-top: 16px;">
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <div class="loading-spinner" style="width: 20px; height: 20px;"></div>
+                                <span id="voice-progress-label" style="font-size: 0.85rem; color: var(--text-secondary);">Processing your LinkedIn data...</span>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.1); border-radius: 4px; height: 4px; overflow: hidden;">
+                                <div id="voice-progress-bar" style="background: var(--brand-primary); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+
+                        <div id="voice-status-message" style="margin-top: 16px; text-align: center; opacity: 0; transition: opacity 0.3s;"></div>
+                    </div>
+                </div>
+
+                <!-- CRM Hub Tab (Sidebar — minimal, filters moved to output console) -->
+                <div id="tab-crm-hub" class="tab-pane">
+                    <div class="form-section" style="margin-top: 0;">
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; color: var(--text-primary); font-weight: 600;">
+                                <i data-lucide="users" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                                CRM Hub
+                            </label>
+                            <p style="font-size: 0.75rem; color: var(--text-tertiary); margin-top: 4px; margin-bottom: 12px;">
+                                AI-powered contact scoring, filtering, and personalized message generation.
+                            </p>
+                        </div>
+
+                        <!-- Refresh Button -->
+                        <button type="button" id="crm-refresh-btn" class="primary-btn" style="width: 100%; margin-bottom: 16px;">
+                            <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                            Load Contacts
+                        </button>
+
+                        <!-- Loading State -->
+                        <div id="crm-loading" style="display: none; text-align: center; padding: 24px 0;">
+                            <div class="loading-spinner" style="margin: 0 auto 16px;"></div>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary);">Loading contacts...</p>
+                        </div>
+
+                        <!-- Empty State -->
+                        <div id="crm-empty" style="display: none; text-align: center; padding: 24px 0;">
+                            <i data-lucide="users" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 8px;">No contacts yet</p>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); max-width: 240px; margin: 0 auto;">Import your LinkedIn data to populate the CRM.</p>
+                        </div>
+
+                        <!-- Contacts List (rendered in output console) -->
+                        <div id="crm-contacts-list" style="display: none;"></div>
+
+                        <!-- Stats Card (hidden, kept for JS compat) -->
+                        <div id="crm-stats" style="display: none;">
+                            <span id="crm-stat-total">0</span>
+                            <span id="crm-stat-hot">0</span>
+                            <span id="crm-stat-warm">0</span>
+                            <span id="crm-stat-cold">0</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <!-- Sidebar Log Panel -->
             <section class="dashboard-card log-card">
@@ -501,7 +933,54 @@
         <!-- RIGHT MAIN CONTENT (70%) - Inner Workings -->
         <main class="main-content">
             <header class="main-header">
-                <div id="user-info-display" style="display: flex; align-items: center; gap: 12px; height: 100%;"></div>
+                <div id="user-info-wrapper" style="position: relative;">
+                    <div id="user-info-display" style="display: flex; align-items: center; gap: 10px; height: 100%; cursor: pointer; padding: 4px 8px; border-radius: 10px; transition: background 0.2s;"></div>
+                    <div id="user-dropdown-menu" style="
+                        display: none;
+                        position: absolute;
+                        top: calc(100% + 8px);
+                        left: 0;
+                        min-width: 220px;
+                        background: var(--bg-elevated);
+                        border: 1px solid var(--border);
+                        border-radius: 12px;
+                        overflow: hidden;
+                        z-index: 9999;
+                        box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+                        animation: udFadeIn 0.15s ease;
+                    ">
+                        <button id="ud-user-profile-btn" class="ud-menu-item" style="
+                            width: 100%; text-align: left; display: flex; align-items: center; gap: 10px;
+                            padding: 12px 16px; background: transparent; border: none; cursor: pointer;
+                            color: var(--text-primary); font-size: 0.85rem; font-weight: 500;
+                            font-family: var(--font-body); transition: background 0.15s;
+                            border-bottom: 1px solid rgba(255,255,255,0.06);
+                        " onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
+                            <i data-lucide="user" style="width:16px;height:16px;color:var(--brand-primary);flex-shrink:0;"></i>
+                            User Profile
+                        </button>
+                        <button id="ud-settings-btn" class="ud-menu-item" style="
+                            width: 100%; text-align: left; display: flex; align-items: center; gap: 10px;
+                            padding: 12px 16px; background: transparent; border: none; cursor: pointer;
+                            color: var(--text-primary); font-size: 0.85rem; font-weight: 500;
+                            font-family: var(--font-body); transition: background 0.15s;
+                            border-bottom: 1px solid rgba(255,255,255,0.06);
+                        " onmouseover="this.style.background='rgba(255,255,255,0.06)'" onmouseout="this.style.background='transparent'">
+                            <i data-lucide="settings" style="width:16px;height:16px;color:var(--text-secondary);flex-shrink:0;"></i>
+                            Settings
+                        </button>
+                        <button id="ud-logout-btn" class="ud-menu-item" style="
+                            width: 100%; text-align: left; display: flex; align-items: center; gap: 10px;
+                            padding: 12px 16px; background: transparent; border: none; cursor: pointer;
+                            color: rgba(239,68,68,0.85); font-size: 0.85rem; font-weight: 500;
+                            font-family: var(--font-body); transition: background 0.15s;
+                        " onmouseover="this.style.background='rgba(239,68,68,0.06)'" onmouseout="this.style.background='transparent'">
+                            <i data-lucide="log-out" style="width:16px;height:16px;flex-shrink:0;"></i>
+                            Logout
+                        </button>
+                    </div>
+                    <style>@keyframes udFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}</style>
+                </div>
                 <div class="status-indicators">
                     <button id="open-settings-btn" class="header-action-btn" title="Settings"><i data-lucide="settings" class="header-icon"></i></button>
                     <button id="view-history-btn" class="header-action-btn"><i data-lucide="history"
@@ -518,7 +997,15 @@
                     <div class="card-header" style="display: none;">
                     </div>
 
-                    <div id="empty-state" class="empty-state">
+                    <!-- Loading skeleton shown during auth hydration -->
+                    <div id="initial-skeleton" class="empty-state" style="padding: 32px;">
+                        <div class="skeleton" style="width: 60%; height: 20px; margin: 0 auto 16px;"></div>
+                        <div class="skeleton" style="width: 80%; height: 14px; margin: 0 auto 10px;"></div>
+                        <div class="skeleton" style="width: 45%; height: 14px; margin: 0 auto 24px;"></div>
+                        <div class="skeleton" style="width: 140px; height: 38px; margin: 0 auto; border-radius: 8px;"></div>
+                    </div>
+
+                    <div id="empty-state" class="empty-state" style="display: none;">
                         <div class="empty-icon"><i data-lucide="zap"></i></div>
                         <h3>Ready to Automate</h3>
                         <p>Configure your parameters and let intelligent automation handle the content creation.</p>
@@ -595,9 +1082,27 @@
                         <!-- ... (60/40 layout above) ... -->
                         <div class="results-layout">
                             <!-- Left: Caption -->
-                            <div class="result-column caption-col">
+                            <div class="result-column caption-col" style="position: relative;">
                                 <label class="section-label">Generated Caption</label>
-                                <div id="caption-preview" class="code-block"></div>
+                                <div id="caption-preview" class="code-block" style="user-select: text; cursor: text;"></div>
+                                <div id="caption-select-hint" class="caption-select-hint" style="display:none;">
+                                    <i data-lucide="message-square-plus" style="width:12px;height:12px;"></i> Select text above to leave a comment for AI refinement
+                                </div>
+
+                                <!-- Floating Comment Annotation Box -->
+                                <div id="caption-comment-box" class="caption-comment-box hidden">
+                                    <div class="caption-comment-header">
+                                        <span class="caption-comment-label"><i data-lucide="message-square" style="width:14px;height:14px;display:inline;vertical-align:-2px;"></i> Comment on selection</span>
+                                        <button id="caption-comment-close" class="caption-comment-close" title="Close">&times;</button>
+                                    </div>
+                                    <div id="caption-comment-selected" class="caption-comment-selected"></div>
+                                    <textarea id="caption-comment-input" class="caption-comment-input" placeholder="e.g. &quot;Make this hook more punchy&quot; or &quot;Use bullet points here&quot;" rows="2"></textarea>
+                                    <div class="caption-comment-actions">
+                                        <button id="caption-comment-apply" class="action-btn success-btn" style="font-size:0.75rem;padding:6px 14px;">
+                                            <i data-lucide="sparkles" style="width:13px;height:13px;" class="btn-icon"></i> Apply with AI
+                                        </button>
+                                    </div>
+                                </div>
 
                                 <!-- Consolidated Actions -->
                                 <div class="action-panel">
@@ -624,6 +1129,16 @@
                                 <label class="section-label">Visual Asset</label>
                                 <div id="asset-preview" class="asset-preview-container"></div>
                             </div>
+                        </div>
+
+                        <!-- Lead Magnets & Resources -->
+                        <div id="lead-magnets-container" class="hidden mt-6 p-4 rounded-lg border border-[var(--border-color)] bg-[var(--bg-dark)]" style="margin-top: 1.5rem; padding: 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); background: var(--bg-dark);">
+                            <h3 style="font-size: 0.875rem; font-weight: 700; color: var(--accent-color); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="magnet"></i> Lead Magnets & Resources
+                            </h3>
+                            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">Share these links with users who comment on your post.</p>
+                            <ul id="lead-magnets-list" style="display: flex; flex-direction: column; gap: 0.5rem; list-style: none; padding: 0; margin: 0;">
+                            </ul>
                         </div>
 
                         <!-- Full Width Image Prompt -->
@@ -703,18 +1218,7 @@
                             <h3 style="font-weight: 600; font-size: 1.25rem; color: var(--text-primary); margin: 0;">Ranked Post Performance</h3>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <label for="surv-sort-filter" style="font-size: 0.78rem; color: var(--text-tertiary); font-weight: 500; white-space: nowrap;">Sort by</label>
-                                <select id="surv-sort-filter" style="
-                                    background: rgba(255,255,255,0.06);
-                                    border: 1px solid rgba(255,255,255,0.12);
-                                    color: var(--text-primary);
-                                    padding: 6px 12px;
-                                    border-radius: 6px;
-                                    font-size: 0.82rem;
-                                    font-family: 'Outfit', sans-serif;
-                                    cursor: pointer;
-                                    outline: none;
-                                    min-width: 160px;
-                                ">
+                                <select id="surv-sort-filter" class="surv-select">
                                     <option value="engagement-desc">Top Engagement</option>
                                     <option value="date-desc">Most Recent</option>
                                     <option value="date-asc">Oldest First</option>
@@ -727,6 +1231,29 @@
                             <!-- Ranked posts injected here -->
                         </div>
 
+                    </section>
+
+                    <!-- Side Output Console: shown when Brand Assets / Voice Engine / CRM Hub tabs are active -->
+                    <section id="side-only-panel" class="hidden tab-output-console">
+                        <div id="output-view-brand-assets" class="tab-output-view hidden">
+                            <div class="tab-output-header">
+                                <i data-lucide="palette" style="width: 18px; height: 18px; color: var(--brand-primary);"></i>
+                                <h3>Brand Assets Data</h3>
+                            </div>
+                            <div id="brand-output-slot" class="tab-output-slot"></div>
+                        </div>
+
+                        <div id="output-view-voice-engine" class="tab-output-view hidden">
+                            <div class="tab-output-header">
+                                <i data-lucide="user" style="width: 18px; height: 18px; color: var(--brand-primary);"></i>
+                                <h3>User Profile</h3>
+                            </div>
+                            <div id="voice-output-slot" class="tab-output-slot"></div>
+                        </div>
+
+                        <div id="output-view-crm-hub" class="tab-output-view hidden">
+                            <div id="crm-output-slot" class="tab-output-slot" style="height:100%;"></div>
+                        </div>
                     </section>
 
                     <!-- Drafts View Area -->
@@ -1015,6 +1542,7 @@
                     </label>
                     <div class="select-wrapper">
                         <select id="repurpose-color-palette" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                            <option value="brand_kit">Brand Kit (My Brand)</option>
                             <option value="brand">Obsidian Brand</option>
                             <option value="executive">Executive Navy</option>
                             <option value="coral">Bold Coral</option>
@@ -1096,6 +1624,7 @@
                         </label>
                         <div class="select-wrapper">
                             <select id="regen-tweak-color-palette" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
+                                <option value="brand_kit">Brand Kit (My Brand)</option>
                                 <option value="brand">Obsidian Brand</option>
                                 <option value="executive">Executive Navy</option>
                                 <option value="coral">Bold Coral</option>
@@ -1153,58 +1682,22 @@
                             <div class="form-group">
                                 <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
                                     <i data-lucide="message-square-plus" style="width: 16px; height: 16px; color: var(--brand-primary);"></i> 
-                                    Refinement (Prompt)
+                                    Refinement Instructions
                                 </label>
-                                <textarea id="regen-image-instructions" class="dark-input glass-input" rows="4" 
-                                    placeholder="Describe enhancements... (e.g. 'Make it night time', 'Add neon lights', 'Remove the text')"
+                                <textarea id="regen-image-instructions" class="dark-input glass-input" rows="5" 
+                                    placeholder="Describe what to change... (e.g. 'Make it night time', 'Add neon lights', 'Remove the text', 'Change background to blue')"
                                     style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
                             </div>
-                            
-                            <div class="form-group">
-                                 <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
-                                    <i data-lucide="palette" style="width: 16px; height: 16px; color: var(--brand-primary);"></i> 
-                                    Visual Style
-                                </label>
-                                 <div class="select-wrapper">
-                                     <select id="regen-visual-style" class="dark-input glass-input">
-                                            <option value="minimal">Minimal Illustration</option>
-                                            <option value="infographic">Infographic / Chart</option>
-                                            <option value="ugc">UGC / YT Vid Style</option>
-                                            <option value="mockup">Device Mockup</option>
-                                            <option value="cinematic">Cinematic (Video)</option>
-                                     </select>
-                                 </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
-                                    <i data-lucide="ratio" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
-                                    Aspect Ratio
-                                </label>
-                                <select id="regen-refine-aspect-ratio" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
-                                    <option value="1:1">1:1 (Square)</option>
-                                    <option value="4:5">4:5 (Portrait)</option>
-                                    <option value="16:9">16:9 (Landscape)</option>
-                                    <option value="9:16">9:16 (Vertical)</option>
-                                </select>
-                            </div>
 
-                            <div class="form-group">
-                                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--text-secondary); font-weight: 500;">
-                                    <i data-lucide="paintbrush" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
-                                    Color Palette
+                            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1rem; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: var(--radius);">
+                                <label class="switch" style="flex-shrink: 0;">
+                                    <input type="checkbox" id="regen-refine-hq-toggle">
+                                    <span class="slider"></span>
                                 </label>
-                                <div class="select-wrapper">
-                                    <select id="regen-refine-color-palette" class="dark-input glass-input" style="width: 100%; box-sizing: border-box;">
-                                        <option value="brand">Obsidian Brand</option>
-                                        <option value="executive">Executive Navy</option>
-                                        <option value="coral">Bold Coral</option>
-                                        <option value="emerald">Forest &amp; Cream</option>
-                                        <option value="slate">Clean Slate</option>
-                                        <option value="midnight">Midnight Pop</option>
-                                    </select>
+                                <div style="flex: 1;">
+                                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary);">High Quality</span>
+                                    <p style="margin: 2px 0 0; font-size: 0.75rem; color: var(--text-tertiary); line-height: 1.3;">Uses Pro model for higher fidelity. Slower &amp; lower rate limits, but more realistic output.</p>
                                 </div>
-                                <div class="palette-preview" id="regen-refine-palette-preview"></div>
                             </div>
 
                             <div class="modal-footer start-aligned">
@@ -1330,8 +1823,12 @@
         </div>
     </div>
 
-    <script src="auth.js?v=6"></script>
-    <script src="script.js?v=6"></script>
+    <script src="login.js?v=1"></script>
+    <script src="auth.js?v=8"></script>
+    <script src="script.js?v=17"></script>
+    <script src="brand-assets.js?v=3"></script>
+    <script src="voice-engine.js?v=24"></script>
+    <script src="crm-hub.js?v=12"></script>
     <script>
         // Initialize Lucide Icons
         lucide.createIcons();

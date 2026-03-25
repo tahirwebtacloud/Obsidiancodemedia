@@ -1,4 +1,5 @@
 {
+  "_deprecated": "App migrated to Supabase. Firestore rules locked to deny-all. This file kept to prevent accidental firebase init.",
   "firestore": {
     "database": "(default)",
     "location": "us-east1",

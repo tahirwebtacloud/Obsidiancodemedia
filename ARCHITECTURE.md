@@ -127,6 +127,13 @@
 - **Modal Actions Footer (`.modal-actions`, `.modal-tabs`)**: Decoupled flexbox CSS classes to push the Repurpose Post button to the right and tab buttons to the left.
 - **Confirm Handler**: Aggregates visual context from all selected items
 
+#### CRM Hub (`frontend/crm-hub.js`)
+
+- **Airtable/Baserow-style table view** with sticky headers and dense row rendering for prospect review.
+- **Per-row draft workflow**: Generate → auto-save draft → open editable draft modal → persist via API.
+- **Live ingestion refresh**: listens for `linkedin-processing-status` and silently reloads CRM contacts while import is processing.
+- **Field coverage**: role/title (`position`), company, tag, warmth, intent summary, message count, and draft preview.
+
 #### Drafts UI (`frontend/index.html`)
 
 - **Entry point**: `History` → `Drafts` sub-tab
@@ -144,7 +151,7 @@
 
 #### server.py
 
-FastAPI application with 12 endpoints, SSE streaming, and validation error handling:
+FastAPI application with generation, ingestion, and CRM endpoints, SSE streaming, and validation error handling:
 
 **Imports & Setup:**
 
@@ -165,9 +172,10 @@ async def validation_exception_handler(request, exc):
 **Helper Functions** (shared by `/api/generate` and `/api/generate-stream`):
 
 ```python
-def _build_orchestrator_command(req):
+def _build_orchestrator_command(req, uid):
     # Builds the subprocess command list from GenerateRequest fields
     # Handles source_content temp file, visual_context JSON, ref images
+    # Always forwards resolved auth user via --user_id for tenant-scoped runtime generation
     return command
 
 def _save_history_entry(req, result_data):
@@ -201,7 +209,7 @@ class GenerateRequest(BaseModel):
 @app.post("/api/generate")          # Main generation REST (128 routing configs)
 @app.post("/api/generate-stream")   # SSE streaming generation with real-time progress
 @app.post("/api/save")              # Save post to Baserow
-@app.post("/api/regenerate-image")   # Regenerate image (refine/tweak modes)
+@app.post("/api/regenerate-image")   # Regenerate image (refine/tweak modes, no logo compositing)
 @app.post("/api/regenerate-caption") # Regenerate caption
 @app.post("/api/draft")             # Quick in-situ drafting
 @app.get("/api/history")             # Generation history (max 100)
@@ -214,14 +222,25 @@ class GenerateRequest(BaseModel):
 @app.post("/api/research/viral")     # Viral research via Apify
 @app.post("/api/research/competitor") # Competitor scraping via Apify
 @app.post("/api/research/youtube")   # YouTube analysis (fast=yt-dlp, deep=Apify)
+@app.post("/api/preview-brand")      # Extract brand assets from URL (preview mode)
+@app.post("/api/save-brand")         # Validate and persist user brand assets
+@app.get("/api/brand")               # Load saved user brand assets
+@app.post("/api/upload-linkedin")    # Upload LinkedIn ZIP for persona + CRM ingestion
+@app.get("/api/persona")             # Persona + ingestion status
+@app.post("/api/search-voice")       # Voice context search
+@app.post("/api/crm/analyze")        # Analyze conversation for CRM tagging
+@app.get("/api/crm/contacts")        # CRM contacts list
+@app.post("/api/crm/generate-message") # Generate CRM outreach message
+@app.put("/api/crm/contacts/{contact_id}/draft") # Persist per-contact draft
 ```
 
 **SSE Streaming Endpoint** (`/api/generate-stream`):
 
 ```python
 @app.post("/api/generate-stream")
-async def generate_post_stream(req: GenerateRequest):
-    command = _build_orchestrator_command(req)
+async def generate_post_stream(req: GenerateRequest, request: Request):
+    uid = request.headers.get("X-User-ID", request.headers.get("X-Firebase-UID", req.user_id or "default"))
+    command = _build_orchestrator_command(req, uid=uid)
     
     async def event_generator():
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -305,6 +324,9 @@ if should_generate_image:
     print(">>>STAGE:image_start")
     image_url, error_msg = generate_image_asset(full_prompt, aspect_ratio=aspect_ratio)
     print(">>>STAGE:image_done")  # fires even if image gen fails
+
+# Output behavior
+# Generated image is returned directly (no post-processing logo overlay)
 ```
 
 **Key Functions**:
@@ -356,6 +378,7 @@ def generate_assets(post_type, purpose, topic, source_content,
     # 5. Generate image if needed
     if visual_aspect == "image":
         image_url = generate_image(image_prompt, aspect_ratio)
+        # No post-generation logo compositing
     
     # 6. Return final plan
     return final_plan
@@ -447,6 +470,8 @@ Thin wrapper around Supabase Python SDK (`supabase.create_client()`).
 - Uses service role key for reliable backend access (never expires).
 - Gracefully falls back to local JSON persistence (`.tmp/history_{uid}.json` and `.local_settings.json`) if Supabase is unreachable.
 - All data is isolated per user ID for multi-tenant support.
+- Persists CRM contacts with local-first behavior plus paginated Supabase reads.
+- Caches CRM conversation threads in `.tmp/crm_threads_{uid}.json` for conversation-aware message generation by `conversation_id`.
 
 ### Directive Files
 
@@ -477,6 +502,36 @@ System prompts for each purpose type:
 - Clear CTA
 
 ## Data Flow
+
+### Brand Assets + Dynamic Theming Flow
+
+```
+User opens Brand Assets tab
+    ↓
+Enter URL → Analyze Website
+    ↓
+POST /api/preview-brand
+    ↓
+execution/brand_extractor.py
+  1) Firecrawl v2 scrape (formats=["branding","markdown"])
+  2) Deterministic extraction of colors/logo/fonts
+  3) Gemini content analysis (name/tone/products)
+  4) Gemini UI theme generation (`ui_theme`) from full extracted color map
+  5) Cache write with extraction_schema_version
+    ↓
+Frontend receives `brand_assets`
+  - Render extracted palette chips (`extracted_colors`)
+  - Render extracted font chips (`extracted_fonts`)
+  - Apply full `ui_theme` to CSS vars via applyBrandToUI()
+    ↓
+User edits primary/secondary/accent → Save & Apply
+    ↓
+brand-assets.js regenerates synced `ui_theme`
+    ↓
+POST /api/save-brand → persisted via supabase_client.py
+    ↓
+Global UI re-themes (including hover/focus/glow states)
+```
 
 ### Generate Tab Flow (SSE Streaming)
 
@@ -574,31 +629,37 @@ Error → completeSimpleProgress('error') → stepper shows red, hides after 150
 
 **Solution**: Replace all colons with hyphens: `full_prompt.replace(":", " -")`
 
-### 5. YouTube Thumbnail Integration
+### 5. Logo Overlay Removal
+
+**Problem**: Fixed-position/composited logos can break layouts for unknown logo aspect ratios.
+
+**Solution**: Logo compositing was removed from both `generate_assets.py` and `/api/regenerate-image` pipeline. Visual outputs are returned as normal generated images.
+
+### 6. YouTube Thumbnail Integration
 
 **Problem**: YouTube repurpose had no visual context.
 
 **Solution**: Create visualItems array with thumbnail URL, pass to repurpose modal.
 
-### 6. Carousel Routing
+### 7. Carousel Routing
 
 **Problem**: Carousel needs separate generator.
 
 **Solution**: Check `args.type == "carousel"` or `args.visual_aspect == "carousel"` in orchestrator.
 
-### 7. Video Transcription
+### 8. Video Transcription
 
 **Problem**: Need to analyze video content.
 
 **Solution**: Use Gemini multimodal to transcribe and extract storytelling structure.
 
-### 8. CLI Length Limits
+### 9. CLI Length Limits
 
 **Problem**: Large source_content exceeds Windows CLI limits.
 
 **Solution**: Write to temp file, pass file path instead of content.
 
-### 9. Pydantic 422 Validation Error (YouTube Repurpose)
+### 10. Pydantic 422 Validation Error (YouTube Repurpose)
 
 **Problem**: `GenerateRequest` used bare `str = None` and `list = None` types. When frontend sent JSON `null` for nullable fields (e.g. `source_video_urls: null`), Pydantic rejected with 422 Unprocessable Entity. Frontend only checked `result.error` but FastAPI returns `result.detail`, so UI showed "Drafting failed: undefined".
 
@@ -609,13 +670,13 @@ Error → completeSimpleProgress('error') → stepper shows red, hides after 150
 3. Frontend now checks `result.error || result.detail || JSON.stringify(result)`
 4. Added null safety for YouTube thumbnail: `item.thumbnail && item.thumbnail.startsWith && item.thumbnail.startsWith('http')`
 
-### 10. YouTube Thumbnail Null Safety
+### 11. YouTube Thumbnail Null Safety
 
 **Problem**: `item.thumbnail.startsWith('http')` could throw if `thumbnail` is undefined or not a string.
 
 **Solution**: Guard chain: `item.thumbnail && item.thumbnail.startsWith && item.thumbnail.startsWith('http')`, with fallback defaults for `title` and `channelName`.
 
-### 11. Database Migration: Firebase → Supabase
+### 12. Database Migration: Firebase → Supabase
 
 **Problem**: Firebase Application Default Credentials (ADC) expired frequently, causing all Firestore operations to fail and fall back to local files. History and settings were not persisting to the cloud.
 

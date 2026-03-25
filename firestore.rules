@@ -1,8 +1,10 @@
 rules_version = '2';
+// LOCKED DOWN: App has migrated to Supabase. Firestore access is denied.
+// If you need Firestore again, write proper per-collection rules with auth checks.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

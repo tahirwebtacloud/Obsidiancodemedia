@@ -1,0 +1,19 @@
+{
+  "status": "commited",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:9999/c:\\\\Users\\\\Hp\\\\Desktop\\\\Docs\\\\Backup Files\\\\LinkedIn Post Generator v1.1 main",
+  "backendAuthType": "public",
+  "executionArgs": {
+    "projectName": "linkedin-post-generator",
+    "projectPath": "c:\\Users\\Hp\\Desktop\\Docs\\Backup Files\\LinkedIn Post Generator v1.1 main",
+    "testIds": [],
+    "additionalInstruction": "Backend API tests only. Non-destructive checks.",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-j2Os9sPL3r6Zwej4mZYlh85PqBGSzv3TFVPNQGJdEV4fmLJQqCIfrMWERROrsXGj96H1nNxli7ru9EtP8ljof_eLYBQB1FEAcXj7BND7iVNRRuC8V6zhsWjCF7dnBs9UVB0"
+    }
+  },
+  "serverPort": 56716,
+  "proxy": "http://ad0e77bb-4b7b-443d-bec9-d8cf91032183:XQMepqZobog9YtnnM10FcSL8DCnWkQyy@tun.testsprite.com:8080"
+}

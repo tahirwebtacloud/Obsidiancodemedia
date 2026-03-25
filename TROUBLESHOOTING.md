@@ -48,6 +48,25 @@ http://localhost:9999
 
 ### Generation Issues
 
+#### Issue: Logo appears unexpectedly on generated image
+**Symptoms:**
+- A generated/regenerated image contains a logo mark
+- User expects no logo stamping in pipeline output
+
+**Current Behavior:**
+- The backend does **not** composite or overlay logos after generation.
+- `generate_assets.py` and `/api/regenerate-image` now return direct image output.
+
+**Root Cause:**
+- The logo is part of model-generated pixels from prompt/content context, not a backend overlay.
+
+**Solution:**
+1. Add explicit negative instruction in prompt: "no logo, no watermark, no brand mark".
+2. Regenerate via **tweak** mode with the same negative constraint.
+3. If needed, simplify visual prompt to reduce accidental emblem/icon generation.
+
+---
+
 #### Issue: No image generated when visual_aspect == "image"
 **Symptoms:**
 - visual_aspect set to "image"
@@ -503,6 +522,68 @@ if process.returncode != 0:
 ---
 
 ### UI Issues
+
+#### Issue: Brand Assets shows fewer colors/fonts than Firecrawl
+**Symptoms:**
+- Firecrawl raw branding output contains many colors/fonts
+- Brand Assets panel shows only 3 colors or one font
+
+**Root Causes:**
+1. Legacy cached extraction payload (pre `extraction_schema_version=2`)
+2. Browser loading stale JS/CSS bundle
+3. Fallback path using only core colors when extracted arrays are missing
+
+**Solution:**
+1. Hard refresh browser cache: `Ctrl+Shift+R`
+2. Ensure current asset versions are loaded in `frontend/index.html`:
+   - `style.css?v=...`
+   - `script.js?v=...`
+   - `brand-assets.js?v=...`
+   - `crm-hub.js?v=...`
+3. Re-run Analyze Website once to refresh cache entry with:
+   - `extracted_colors`
+   - `extracted_fonts`
+   - `extraction_schema_version`
+4. Verify `execution/brand_extractor.py` cache gate requires non-empty palette and schema >= 2.
+
+---
+
+#### Issue: Save & Apply returns success but theme does not visibly change
+**Symptoms:**
+- `/api/save-brand` returns `200` success
+- UI still looks old after Save & Apply
+
+**Root Causes:**
+1. `ui_theme` not regenerated from manually edited core colors
+2. CSS still contains hardcoded golden values in hover/focus/active states
+3. Stale frontend bundle cached by browser
+
+**Solution:**
+- Confirm `buildThemeFromManualColors()` is called before save in `frontend/brand-assets.js`.
+- Confirm `applyBrandToUI()` applies the merged `ui_theme` after save.
+- Replace hardcoded `rgba(249,199,79,...)` with `rgba(var(--brand-primary-rgb), ...)` for interactive states.
+- Hard refresh and retest.
+
+---
+
+#### Issue: Hover/focus states still show yellow accents after theming
+**Symptoms:**
+- Buttons, pills, or progress states show golden glow despite non-yellow brand
+
+**Root Cause:**
+- Residual hardcoded yellow values remained in CSS/JS inline style paths.
+
+**Solution:**
+- Search frontend for `rgba(249,199,79` and `#F9C74F` and replace with theme tokens where needed.
+- Preferred replacements:
+  - `rgba(var(--brand-primary-rgb), <alpha>)`
+  - `var(--brand-primary)`
+  - `var(--brand-primary-hover)`
+- Retest these paths:
+  - Stepper active circle/status/connector shimmer
+  - Draft/CRM filter pills
+  - Modal success button hover
+  - CRM action buttons and chips
 
 #### Issue: Settings icon does nothing
 

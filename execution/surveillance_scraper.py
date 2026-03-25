@@ -1,36 +1,34 @@
 import os
+import sys
 import json
 import argparse
 from datetime import datetime, timedelta, timezone
 from apify_client import ApifyClient
 from dotenv import load_dotenv
+
+# Ensure sibling modules are importable when run as subprocess
+sys.path.insert(0, os.path.dirname(__file__))
+
 from viral_research_apify import process_items, get_apify_keys
 
 load_dotenv()
 
 def run_surveillance(days=30, uid="default"):
-    # Prefer Firestore-stored URL so UI edits are respected; fall back to local settings, then .env
+    # Prefer Supabase-stored URL so UI edits are respected; fall back to .env
     profile_url = None
     try:
-        from firestore_client import get_setting
-        profile_url = get_setting("trackedProfileUrl", uid=uid)
+        from supabase_client import get_all_settings
+        settings = get_all_settings(uid=uid)
+        profile_url = settings.get("trackedProfileUrl")
     except Exception:
         pass
-
-    # Fallback: read from local settings file (written by the UI save button)
-    if not profile_url:
-        try:
-            from firestore_client import _read_local_settings
-            profile_url = _read_local_settings().get("trackedProfileUrl")
-        except Exception:
-            pass
 
     # Final fallback: .env
     if not profile_url:
         profile_url = os.getenv("LINKEDIN_PROFILE_URL")
 
     if not profile_url:
-        print("Error: No tracked profile URL found in Firestore or .env")
+        print("Error: No tracked profile URL found in settings or .env")
         return None
 
     keys_to_try = get_apify_keys()

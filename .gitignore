@@ -8,6 +8,16 @@ gsheet_credentials.json
 token.json
 firebase-service-account.json
 
+# Sensitive user data & tokens
+linkedin_tokens.json
+linkedin_cookies.txt
+.local_settings.json
+.local_profiles.json
+.local_brands.json
+app.db
+data.zip
+credentials.json
+
 # Python internal files
 __pycache__/
 *.py[cod]
@@ -16,5 +26,10 @@ __pycache__/
 # IDE and OS specific files
 .vscode/
 .idea/
+.windsurf/
+.claude/
 .DS_Store
 Thumbs.db
+
+# notebooklm-py virtual environment
+notebooklm-py/

@@ -209,6 +209,12 @@ RUN_ENV["PYTHONIOENCODING"] = "utf-8"
 _verified_uid_cache: Dict[str, tuple] = {}  # {token_hash: (uid, expiry_ts)}
 _AUTH_CACHE_TTL = 300  # Cache verified UIDs for 5 minutes
 
+def _is_transient_error(e: Exception) -> bool:
+    """Check if an exception is a transient network/timeout error (not an auth failure)."""
+    err_str = str(e).lower()
+    transient_keywords = ["timeout", "timed out", "connection", "temporarily", "econnreset", "econnrefused", "network"]
+    return any(kw in err_str for kw in transient_keywords)
+
 def get_verified_uid(request: Request) -> str:
     """Extract and verify user ID from Supabase JWT token.
 
@@ -227,23 +233,35 @@ def get_verified_uid(request: Request) -> str:
             if cached and cached[1] > time.time():
                 return cached[0]
 
-            # Verify with Supabase auth API
-            try:
-                from execution.supabase_client import _get_client
-                client = _get_client()
-                user_response = client.auth.get_user(token)
-                if user_response and user_response.user:
-                    uid = user_response.user.id
-                    _verified_uid_cache[token_hash] = (uid, time.time() + _AUTH_CACHE_TTL)
-                    # Prune expired entries if cache grows too large
-                    if len(_verified_uid_cache) > 500:
-                        cutoff = time.time()
-                        expired = [k for k, v in _verified_uid_cache.items() if v[1] < cutoff]
-                        for k in expired:
-                            del _verified_uid_cache[k]
-                    return uid
-            except Exception as e:
-                print(f"[Auth] Token verification failed: {e}")
+            # Verify with Supabase auth API — retry once on transient errors
+            last_error = None
+            for attempt in range(2):
+                try:
+                    from execution.supabase_client import _get_client
+                    client = _get_client()
+                    user_response = client.auth.get_user(token)
+                    if user_response and user_response.user:
+                        uid = user_response.user.id
+                        _verified_uid_cache[token_hash] = (uid, time.time() + _AUTH_CACHE_TTL)
+                        # Prune expired entries if cache grows too large
+                        if len(_verified_uid_cache) > 500:
+                            cutoff = time.time()
+                            expired = [k for k, v in _verified_uid_cache.items() if v[1] < cutoff]
+                            for k in expired:
+                                del _verified_uid_cache[k]
+                        return uid
+                except Exception as e:
+                    last_error = e
+                    if _is_transient_error(e) and attempt == 0:
+                        print(f"[Auth] Transient error (attempt {attempt+1}), retrying immediately: {e}")
+                        continue
+                    # Non-transient or second attempt failed
+                    break
+
+            if last_error:
+                print(f"[Auth] Token verification failed: {last_error}")
+                if _is_transient_error(last_error):
+                    raise HTTPException(status_code=503, detail="Authentication service temporarily unavailable. Please retry.")
                 raise HTTPException(status_code=401, detail="Invalid or expired authentication token")
 
     # 2. No valid auth — reject
@@ -341,7 +359,6 @@ class GenerateRequest(BaseModel):
     source_carousel_slides: Optional[List[str]] = None
     source_video_url: Optional[str] = None
     source_video_urls: Optional[List[str]] = None
-    reference_image: Optional[str] = None
     raw_notes: Optional[str] = None
 
 
@@ -719,6 +736,7 @@ def _persist_asset_to_storage(result_data: dict, uid: str) -> dict:
         local_path = local_path.split("?")[0]
 
     if not os.path.isfile(local_path):
+        print(f"[Storage] WARNING: Local file missing for persistence: {local_path}")
         return result_data
 
     try:
@@ -727,8 +745,13 @@ def _persist_asset_to_storage(result_data: dict, uid: str) -> dict:
         if public_url:
             result_data["asset_url"] = public_url
             result_data["_local_asset_url"] = asset_url  # Keep local fallback
+            print(f"[Storage] ✓ Persisted: {asset_url} -> {public_url[:80]}...")
+        else:
+            print(f"[Storage] ⚠ PERSISTENCE FAILED — URL stays local: {asset_url}")
+            print(f"[Storage] ⚠ Image will be LOST when container restarts!")
     except Exception as e:
-        print(f"[Storage] Persist failed, keeping local URL: {e}")
+        print(f"[Storage] ⚠ Persist exception, keeping local URL: {e}")
+        print(f"[Storage] ⚠ Image will be LOST when container restarts!")
 
     return result_data
 
@@ -784,7 +807,7 @@ async def generate_post_stream(req: GenerateRequest, request: Request):
     print(f"[SSE] Received streaming generation request: {req.action}")
 
     if req.auto_topic:
-        auto_topic = _generate_auto_topic(uid)
+        auto_topic = await asyncio.to_thread(_generate_auto_topic, uid)
         req.topic = auto_topic
         print(f"[SSE] Auto-generated topic: {req.topic}")
 
@@ -794,6 +817,9 @@ async def generate_post_stream(req: GenerateRequest, request: Request):
     async def event_generator():
         if req.auto_topic:
             yield f"event: auto_topic\ndata: {json.dumps({'topic': req.topic})}\n\n"
+
+        # Emit research_start IMMEDIATELY so first progress stage highlights instantly
+        yield f"event: stage\ndata: {json.dumps({'stage': 'research_start'})}\n\n"
 
         async with generation_lock:
             proc = subprocess.Popen(
@@ -837,7 +863,7 @@ async def generate_post_stream(req: GenerateRequest, request: Request):
                     # Upload generated image to Supabase Storage (survives container restarts)
                     result_data = _persist_asset_to_storage(result_data, uid)
 
-                    _save_history_entry(req, result_data, uid_override=uid)
+                    _save_history_entry(req, result_data, full_results=result_data, uid_override=uid)
                     yield f"event: result\ndata: {json.dumps(result_data, ensure_ascii=False)}\n\n"
                 else:
                     yield f"event: error\ndata: {json.dumps({'error': 'No output file found'})}\n\n"
@@ -886,7 +912,7 @@ async def save_post(req: SaveRequest, request: Request):
         command = ["python", "execution/baserow_logger.py", "--type", "posts", "--path", temp_file]
         
         print(f"Executing logger: {' '.join(command)}")
-        result = subprocess.run(command, capture_output=True, text=True, env=RUN_ENV, encoding='utf-8')
+        result = await asyncio.to_thread(subprocess.run, command, capture_output=True, text=True, env=RUN_ENV, encoding='utf-8')
         
         if result.returncode != 0:
             print(f"Logger Error: {result.stderr}")
@@ -912,6 +938,7 @@ class RegenerateImageRequest(BaseModel):
     mode: str = "refine" # "refine" (VLM+IDM) or "tweak" (Text-to-Image)
     prompt: str = "" # For 'tweak' mode
     color_palette: str = "brand"
+    high_quality: bool = False # For 'refine' mode — routes to Pro model instead of Flash
     reference_image: Optional[str] = None # base64 data URL for reference image
 
 @app.post("/api/regenerate-image")
@@ -923,11 +950,6 @@ async def regenerate_image(req: RegenerateImageRequest, request: Request):
     def save_history(entry):
         from execution.supabase_client import add_history_entry
         add_history_entry(entry, uid=uid)
-
-    # 1. Save Pre-Regen State (Old Image)
-    if req.history_entry:
-        save_history(req.history_entry)
-        print("Saved previous state to history.")
 
     try:
         new_asset_url = None
@@ -946,32 +968,72 @@ async def regenerate_image(req: RegenerateImageRequest, request: Request):
             
             if not new_asset_url: return JSONResponse(status_code=500, content={"error": error})
 
-        # MODE: REFINE (VLM + IDM)
+        # MODE: REFINE (VLM + IDM) — only needs instructions + source image
         else:
             command = [
-                "python", "execution/regenerate_image.py", 
+                "python", "execution/regenerate_image.py",
                 "--caption", req.caption,
-                "--style", req.style,
-                "--aspect_ratio", req.aspect_ratio,
-                "--color_palette", req.color_palette
             ]
             
             if req.instructions:
                 command.extend(["--instructions", req.instructions])
             
-            if req.source_image:
-                # Convert URL to local path
-                # URL: /assets/filename.png -> Local: .tmp/filename.png
-                if "/assets/" in req.source_image:
+            if req.high_quality:
+                command.append("--high_quality")
+                print(f">>> Refine mode: HIGH QUALITY enabled — routing to Pro model")
+            
+            # Priority: user-uploaded reference_image (base64) > previously generated source_image (URL)
+            ref_img_used = False
+            if req.reference_image and req.reference_image.startswith('data:'):
+                try:
+                    header, b64data = req.reference_image.split(',', 1)
+                    import base64 as b64mod
+                    img_bytes = b64mod.b64decode(b64data)
+                    ext = 'png'
+                    if 'jpeg' in header or 'jpg' in header: ext = 'jpg'
+                    elif 'webp' in header: ext = 'webp'
+                    os.makedirs(".tmp", exist_ok=True)
+                    ref_path = f".tmp/regen_ref_{uuid.uuid4().hex[:8]}.{ext}"
+                    with open(ref_path, "wb") as rf:
+                        rf.write(img_bytes)
+                    command.extend(["--source_image", ref_path])
+                    ref_img_used = True
+                    print(f">>> Refine mode: Using user-uploaded reference image ({len(img_bytes)} bytes) at {ref_path}")
+                except Exception as ref_err:
+                    print(f"Warning: Failed to decode reference_image for refine: {ref_err}")
+
+            if not ref_img_used and req.source_image:
+                source_resolved = False
+                
+                # Case A: Local /assets/ URL → .tmp/ path
+                if "/assets/" in req.source_image and not req.source_image.startswith("http"):
                     local_path = req.source_image.replace("/assets/", ".tmp/")
-                    # Remove query params if any
                     if "?" in local_path:
                         local_path = local_path.split("?")[0]
-                    
                     if os.path.exists(local_path):
                         command.extend(["--source_image", local_path])
-                    else:
-                        print(f"Warning: Source image not found at {local_path}")
+                        source_resolved = True
+                        print(f">>> Refine mode: Using local source image at {local_path}")
+                
+                # Case B: Full HTTP(S) URL (e.g. Supabase storage) → download to temp file
+                if not source_resolved and req.source_image.startswith("http"):
+                    try:
+                        import requests as req_lib
+                        print(f">>> Refine mode: Downloading source image from URL...")
+                        dl_resp = req_lib.get(req.source_image, timeout=30)
+                        dl_resp.raise_for_status()
+                        os.makedirs(".tmp", exist_ok=True)
+                        dl_path = f".tmp/refine_source_{uuid.uuid4().hex[:8]}.png"
+                        with open(dl_path, "wb") as dl_f:
+                            dl_f.write(dl_resp.content)
+                        command.extend(["--source_image", dl_path])
+                        source_resolved = True
+                        print(f">>> Refine mode: Downloaded source image ({len(dl_resp.content)} bytes) to {dl_path}")
+                    except Exception as dl_err:
+                        print(f"Warning: Failed to download source image: {dl_err}")
+                
+                if not source_resolved:
+                    print(f"WARNING: Could not resolve source image '{req.source_image}' — refine will fall back to from-scratch generation")
             
             print(f"Executing: {' '.join(command)}")
             async with generation_lock:
@@ -998,23 +1060,40 @@ async def regenerate_image(req: RegenerateImageRequest, request: Request):
                     return JSONResponse(status_code=500, content={"error": "Result file not found"})
 
         # Upload regenerated image to Supabase Storage
+        print(f"[REGEN] Pre-persist URL: {new_asset_url}")
         if new_asset_url and new_asset_url.startswith("/assets/"):
+            local_check = new_asset_url.replace("/assets/", ".tmp/", 1)
+            print(f"[REGEN] Local file exists: {os.path.isfile(local_check)} ({local_check})")
             regen_data = {"asset_url": new_asset_url}
             regen_data = _persist_asset_to_storage(regen_data, uid)
             new_asset_url = regen_data.get("asset_url", new_asset_url)
+            print(f"[REGEN] Post-persist URL: {new_asset_url}")
+        elif new_asset_url:
+            print(f"[REGEN] URL already persistent (not /assets/): {new_asset_url[:80]}")
 
-        # 2. Save Post-Regen State (New Image) to History
+        # Save Post-Regen State (New Image) to History
         if new_asset_url and req.history_entry:
             new_entry = req.history_entry.copy()
             new_entry['asset_url'] = new_asset_url
             new_entry['final_image_prompt'] = new_prompt
             new_entry['id'] = str(uuid.uuid4())
             new_entry['timestamp'] = int(time.time() * 1000)
-            # Mark as unapproved draft? Or keep original status? Usually reset approval.
-            new_entry['approved'] = False 
+            new_entry['approved'] = False
+            # Read actual regen costs (not stale costs from original generation)
+            regen_costs, regen_total, regen_dur = _get_run_costs()
+            if regen_costs:
+                new_entry['costs'] = regen_costs
+                new_entry['total_cost'] = regen_total
+                new_entry['duration_ms'] = regen_dur
+            # Tag as regeneration so history tab can distinguish
+            mode_label = "Tweak" if req.mode == "tweak" else "Refine"
+            orig_topic = new_entry.get('topic', 'Unknown')
+            new_entry['input_summary'] = f"[REGEN-{mode_label.upper()}] {orig_topic}"
             
             save_history(new_entry)
-            print("Saved NEW state to history.")
+            print(f"[REGEN] Saved history entry: topic='{orig_topic}' mode='{mode_label}' cost=${regen_total:.4f}")
+        else:
+            print(f"[REGEN] WARNING: History NOT saved. asset_url={new_asset_url}, has_history_entry={bool(req.history_entry)}")
 
         return {"asset_url": new_asset_url, "final_image_prompt": new_prompt}
 
@@ -1067,11 +1146,170 @@ async def regenerate_caption(req: RegenerateCaptionRequest, request: Request):
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": _safe_error(str(e))})
 
+class EditCaptionRequest(BaseModel):
+    full_caption: str
+    selected_text: str
+    comment: str
+    topic: str = "General"
+    purpose: str = "educational"
+    user_id: Optional[str] = None
+
+@app.post("/api/edit-caption")
+async def edit_caption(req: EditCaptionRequest, request: Request):
+    """Inline annotation edit: deterministic splice with Gemini 2.5 Flash Thinking.
+    
+    Pipeline:
+    1. Find selected_text position in full_caption (deterministic string search)
+    2. Send ONLY the selected_text + user comment to LLM (no full caption — LLM can't touch anything else)
+    3. LLM thinks through the edit and returns ONLY the rewritten section
+    4. Splice: before_text + LLM_output + after_text (deterministic — guarantees unchanged text is preserved)
+    """
+    uid = get_verified_uid(request)
+    print(f"[edit-caption] uid={uid} | selected='{req.selected_text[:80]}' | comment='{req.comment[:80]}'")
+
+    # Guard: reject empty or trivially short selected_text
+    if not req.selected_text or len(req.selected_text.strip()) < 3:
+        print(f"[edit-caption] REJECTED: selected_text is empty or too short (len={len(req.selected_text)})")
+        return JSONResponse(status_code=400, content={"error": "Selected text is empty. Please select some text and try again."})
+    if not req.full_caption or not req.comment:
+        return JSONResponse(status_code=400, content={"error": "Missing required fields (full_caption or comment)."})
+
+    try:
+        from google import genai
+        from google.genai import types
+
+        api_key = os.getenv("GOOGLE_GEMINI_API_KEY")
+        if not api_key:
+            return JSONResponse(status_code=500, content={"error": "Gemini API key not configured."})
+
+        # ── STEP 1: Find the exact position of the selected text ──
+        sel_idx = req.full_caption.find(req.selected_text)
+        if sel_idx == -1:
+            # Try whitespace-normalized match as fallback
+            # Build a mapping from normalized positions back to original positions
+            orig = req.full_caption
+            norm_sel = ' '.join(req.selected_text.split())
+            # Walk original string building normalized version with position mapping
+            norm_chars = []
+            norm_to_orig = []
+            i = 0
+            in_ws = False
+            while i < len(orig):
+                if orig[i] in ' \t':
+                    if not in_ws and norm_chars:
+                        norm_chars.append(' ')
+                        norm_to_orig.append(i)
+                    in_ws = True
+                elif orig[i] in '\n\r':
+                    norm_chars.append(orig[i])
+                    norm_to_orig.append(i)
+                    in_ws = False
+                else:
+                    norm_chars.append(orig[i])
+                    norm_to_orig.append(i)
+                    in_ws = False
+                i += 1
+            norm_full = ''.join(norm_chars)
+            norm_idx = norm_full.find(norm_sel)
+            if norm_idx != -1:
+                # Map back to original positions
+                orig_start = norm_to_orig[norm_idx]
+                norm_end = norm_idx + len(norm_sel) - 1
+                if norm_end < len(norm_to_orig):
+                    orig_end = norm_to_orig[norm_end] + 1
+                else:
+                    orig_end = len(orig)
+                sel_idx = orig_start
+                # Override selected_text to match the exact original substring
+                req.selected_text = orig[orig_start:orig_end]
+                print(f"[edit-caption] Normalized match: orig pos {orig_start}-{orig_end}")
+            else:
+                print(f"[edit-caption] ERROR: selected_text not found in caption at all.")
+                return JSONResponse(status_code=400, content={"error": "Selected text not found in caption. Please re-select and try again."})
+
+        before_text = req.full_caption[:sel_idx]
+        after_text = req.full_caption[sel_idx + len(req.selected_text):]
+        print(f"[edit-caption] Splice position: idx={sel_idx}, selected_len={len(req.selected_text)}, before={len(before_text)}, after={len(after_text)}")
+
+        # ── STEP 2: Send ONLY the selected text + comment to Gemini 2.5 Flash Thinking ──
+        # The LLM never sees the full caption — it CAN'T modify anything else.
+
+        system_prompt = """You are an expert LinkedIn copywriter. The user selected a specific piece of text from their post and wants you to rewrite it.
+
+RULES:
+1. You will receive ONLY the selected text and the user's comment about what to change.
+2. Rewrite the selected text according to the user's comment.
+3. Preserve the same line break style and tone of the original.
+4. Output ONLY the rewritten text. Nothing else — no preamble, no explanation, no quotes, no markdown."""
+
+        user_content = f"""SELECTED TEXT:
+{req.selected_text}
+
+CHANGE REQUESTED:
+{req.comment}
+
+Rewrite the selected text above according to the requested change. Output ONLY the rewritten text."""
+
+        client = genai.Client(api_key=api_key)
+        thinking_model = "gemini-2.5-flash"
+
+        async with generation_lock:
+            response = await asyncio.to_thread(
+                client.models.generate_content,
+                model=thinking_model,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.5,
+                    thinking_config=types.ThinkingConfig(thinking_budget=2048),
+                ),
+                contents=user_content
+            )
+
+        if not response or not response.text:
+            return JSONResponse(status_code=500, content={"error": "LLM returned empty response."})
+
+        edited_section = response.text.strip()
+        # Clean potential markdown wrappers
+        if edited_section.startswith("```"):
+            lines = edited_section.split('\n')
+            if len(lines) > 2:
+                edited_section = '\n'.join(lines[1:-1]).strip()
+            else:
+                edited_section = edited_section.strip("`").strip()
+
+        # ── STEP 3: Deterministic splice — replace ONLY the selected range ──
+        edited_caption = before_text + edited_section + after_text
+        print(f"[edit-caption] SPLICE: replaced {len(req.selected_text)} chars → {len(edited_section)} chars at pos {sel_idx}")
+
+        # Update final_plan.json to keep in sync
+        plan_path = ".tmp/final_plan.json"
+        if os.path.exists(plan_path):
+            try:
+                with open(plan_path, "r", encoding="utf-8") as f:
+                    plan = json.load(f)
+                plan["caption"] = edited_caption
+                with open(plan_path, "w", encoding="utf-8") as f:
+                    json.dump(plan, f, indent=4)
+            except Exception:
+                pass
+
+        if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            from execution.cost_tracker import CostTracker
+            tracker = CostTracker()
+            tracker.add_gemini_cost("Inline Caption Edit", response.usage_metadata.prompt_token_count, response.usage_metadata.candidates_token_count, model=thinking_model)
+
+        return {"caption": edited_caption}
+
+    except Exception as e:
+        print(f"[edit-caption] Error: {e}")
+        import traceback; traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": _safe_error(str(e))})
+
 @app.get("/api/history")
 async def get_history(request: Request):
     from execution.supabase_client import get_user_history
     uid = get_verified_uid(request)
-    return get_user_history(uid=uid)
+    return await asyncio.to_thread(get_user_history, uid=uid)
 
 # --- RESEARCH ENDPOINTS ---
 
@@ -1239,7 +1477,8 @@ GENERAL RULES:
     try:
         client = genai.Client(api_key=api_key)
         model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3-pro-preview")
-        response = client.models.generate_content(
+        response = await asyncio.to_thread(
+            client.models.generate_content,
             model=model_name,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
@@ -1276,7 +1515,7 @@ async def list_drafts(request: Request, status: str = None):
     """List user's drafts with optional status filter."""
     uid = get_verified_uid(request)
     from execution.supabase_client import get_user_drafts
-    drafts = get_user_drafts(uid=uid, status_filter=status)
+    drafts = await asyncio.to_thread(get_user_drafts, uid=uid, status_filter=status)
     return {"drafts": drafts}
 
 @app.post("/api/drafts")
@@ -1300,7 +1539,7 @@ async def create_draft(req: DraftSaveRequest, request: Request):
         "quality_score": post.get("quality_score", 0),
     }
 
-    saved = save_draft(draft_data, uid=uid)
+    saved = await asyncio.to_thread(save_draft, draft_data, uid=uid)
     print(f"[Drafts] Saved draft '{saved.get('id')}' for user {uid}")
     return {"message": "Draft saved", "draft": saved}
 
@@ -1310,7 +1549,7 @@ async def update_draft_endpoint(draft_id: str, req: DraftUpdateRequest, request:
     uid = get_verified_uid(request)
     from execution.supabase_client import update_draft
 
-    success = update_draft(draft_id, req.data, uid=uid)
+    success = await asyncio.to_thread(update_draft, draft_id, req.data, uid=uid)
     if success:
         print(f"[Drafts] Updated draft '{draft_id}' for user {uid}")
         return {"message": "Draft updated"}
@@ -1322,7 +1561,7 @@ async def delete_draft_endpoint(draft_id: str, request: Request):
     uid = get_verified_uid(request)
     from execution.supabase_client import delete_draft
 
-    success = delete_draft(draft_id, uid=uid)
+    success = await asyncio.to_thread(delete_draft, draft_id, uid=uid)
     if success:
         print(f"[Drafts] Deleted draft '{draft_id}' for user {uid}")
         return {"message": "Draft deleted"}
@@ -1433,7 +1672,7 @@ async def get_settings(request: Request):
     try:
         from execution.supabase_client import get_all_settings
         
-        data = get_all_settings(uid=uid)
+        data = await asyncio.to_thread(get_all_settings, uid=uid)
         # Fallback: if Supabase has no URL yet, seed from .env so UI isn't blank
         if not data.get("trackedProfileUrl"):
             data["trackedProfileUrl"] = os.getenv("LINKEDIN_PROFILE_URL", "")

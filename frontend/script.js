@@ -1,4 +1,80 @@
+// DOMPurify Sanitization Helper
+window.sanitizeStr = (str) => {
+    if (typeof str !== 'string') return str;
+    return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(str, { ALLOWED_TAGS: [] }) : str.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+    // ── Mobile sidebar toggle (≤900px) ──────────────────────────────────
+    (function initMobileMenu() {
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar) return;
+        // Inject hamburger button if not present
+        if (!document.querySelector('.mobile-menu-btn')) {
+            const btn = document.createElement('button');
+            btn.className = 'mobile-menu-btn';
+            btn.setAttribute('aria-label', 'Open menu');
+            btn.innerHTML = '☰';
+            document.body.appendChild(btn);
+        }
+        // Inject scrim if not present
+        if (!document.querySelector('.sidebar-scrim')) {
+            const scrim = document.createElement('div');
+            scrim.className = 'sidebar-scrim';
+            document.body.appendChild(scrim);
+        }
+        const menuBtn = document.querySelector('.mobile-menu-btn');
+        const scrim = document.querySelector('.sidebar-scrim');
+        function openSidebar() { sidebar.classList.add('mobile-open'); scrim.classList.add('visible'); }
+        function closeSidebar() { sidebar.classList.remove('mobile-open'); scrim.classList.remove('visible'); }
+        menuBtn.addEventListener('click', () => sidebar.classList.contains('mobile-open') ? closeSidebar() : openSidebar());
+        scrim.addEventListener('click', closeSidebar);
+    })();
+
+    // ── Maintenance mode banner ────────────────────────────────────────
+    (function initMaintenanceCheck() {
+        let _bannerEl = null;
+        let _pollTimer = null;
+
+        function showBanner(reason, resumeTime) {
+            if (_bannerEl) { _bannerEl.remove(); _bannerEl = null; }
+            _bannerEl = document.createElement('div');
+            _bannerEl.id = 'maintenance-banner';
+            _bannerEl.innerHTML = `
+                <div class="maint-inner">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    <div class="maint-text">
+                        <strong>System Maintenance</strong>
+                        <span>${reason || 'The system is temporarily under maintenance.'}</span>
+                        ${resumeTime ? `<span class="maint-resume">Estimated resume: ${resumeTime}</span>` : ''}
+                    </div>
+                </div>`;
+            document.body.prepend(_bannerEl);
+        }
+
+        function hideBanner() {
+            if (_bannerEl) { _bannerEl.remove(); _bannerEl = null; }
+        }
+
+        function checkMaintenance() {
+            fetch('/api/admin/maintenance')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.maintenance && data.maintenance.active) {
+                        showBanner(data.maintenance.reason, data.maintenance.resume_time);
+                        if (!_pollTimer) _pollTimer = setInterval(checkMaintenance, 30000);
+                    } else {
+                        hideBanner();
+                        if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+                    }
+                })
+                .catch(() => {});
+        }
+
+        checkMaintenance();
+        window._checkMaintenance = checkMaintenance;
+    })();
+
     const form = document.getElementById('generator-form');
     const resultsSection = document.getElementById('results-content');
     const captionPreview = document.getElementById('caption-preview');
@@ -132,6 +208,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function setProcessingLock(isLocked, options = {}) {
+        const { message } = options;
+        setGlobalLoading(isLocked);
+        document.body.classList.toggle('processing-lock', !!isLocked);
+        if (message) {
+            addSystemLog(message, 'process');
+        }
+        if (submitBtn) {
+            submitBtn.disabled = isLocked;
+        }
+        if (approveBtn) {
+            approveBtn.disabled = isLocked;
+        }
+    }
+
     function setOrchestratorStatus(running) {
         if (!orchStatus || !orchStatusText) return;
         if (running) {
@@ -146,7 +237,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // System Log Helper - Mad Scientist Edition
     function playSystemSound(type) {
         try {
+            // UX-07: Speech synthesis is opt-in — user must enable via localStorage
             if (!window.speechSynthesis) return;
+            if (localStorage.getItem('obsidian_speech_enabled') !== 'true') return;
             
             const utterance = new SpeechSynthesisUtterance();
             utterance.volume = 1;
@@ -167,7 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function addSystemLog(message, type = 'info') {
+    function addSystemLog(message, type = 'info', opts = {}) {
         const logTerminal = document.querySelector('.log-terminal');
         if (!logTerminal) return;
 
@@ -185,15 +278,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const logLine = document.createElement('p');
         logLine.className = 'log-line';
+        if (opts.theatrical) {
+            logLine.style.opacity = '0.45';
+            logLine.style.fontStyle = 'italic';
+        }
         logLine.innerHTML = `<span class="time">[${timestamp}]</span><span class="log-type log-type-${type}">${label}</span> ${message}`;
         logTerminal.appendChild(logLine);
         logTerminal.scrollTop = logTerminal.scrollHeight;
         
-        // Trigger sound for specific types
-        if (type === 'success' || type === 'error') {
+        // Trigger sound for specific types (never for theatrical logs)
+        if (!opts.theatrical && (type === 'success' || type === 'error')) {
             playSystemSound(type);
         }
     }
+
+    // Expose globally so external JS modules can call it
+    window.addSystemLog = addSystemLog;
+    window.setProcessingLock = setProcessingLock;
 
     // Verbose logging helpers
     function logProcess(step) { addSystemLog(step, 'process'); }
@@ -227,7 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let idx = 0;
         fakeLogInterval = setInterval(() => {
             if (idx < madScienceMessages.length) {
-                addSystemLog(madScienceMessages[idx][1], madScienceMessages[idx][0]);
+                addSystemLog(madScienceMessages[idx][1], madScienceMessages[idx][0], { theatrical: true });
                 idx++;
             } else {
                 idx = 0; // Loop
@@ -289,6 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (progressEl) progressEl.classList.remove('hidden');
         if (document.getElementById('empty-state')) document.getElementById('empty-state').style.display = 'none';
         if (resultsSection) resultsSection.classList.add('hidden');
+        if (document.getElementById('lead-magnets-container')) document.getElementById('lead-magnets-container').classList.add('hidden');
         if (window.lucide) lucide.createIcons();
     }
 
@@ -392,6 +494,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const parsed = JSON.parse(dataStr);
                                 if (currentEvent === 'stage') {
                                     setStage(parsed.stage);
+                                } else if (currentEvent === 'auto_topic') {
+                                    addSystemLog(`Auto-generated Topic: "${parsed.topic}"`, 'system');
+                                    const topicInput = document.getElementById('topic');
+                                    if (topicInput) {
+                                        topicInput.value = parsed.topic;
+                                    }
                                 } else if (currentEvent === 'result') {
                                     stopMadScienceLogs();
                                     // Mark remaining stages as done
@@ -409,11 +517,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                     }
                                     if (progressTitle) progressTitle.textContent = 'Generation Complete!';
                                     addSystemLog('Neural generation sequence complete ✓', 'success');
-                                    // Brief delay to show completed state before showing results
+                                    // Minimal delay to flash completed state before showing results
                                     setTimeout(() => {
                                         hideProgress();
                                         if (onSuccess) onSuccess(parsed);
-                                    }, 800);
+                                    }, 150);
                                 } else if (currentEvent === 'error') {
                                     stopMadScienceLogs();
                                     if (progressTitle) progressTitle.textContent = 'Generation Failed';
@@ -462,10 +570,13 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} mode - 'text' | 'image' | 'both' - which stage to activate
      */
     function showSimpleProgress(mode) {
+
         resetProgress();
+        addSystemLog(`Started ${mode === 'text' ? 'text' : 'image'} regeneration... Please wait.`, 'system');
         if (progressEl) progressEl.classList.remove('hidden');
         if (document.getElementById('empty-state')) document.getElementById('empty-state').style.display = 'none';
         if (resultsSection) resultsSection.classList.add('hidden');
+        if (document.getElementById('lead-magnets-container')) document.getElementById('lead-magnets-container').classList.add('hidden');
         if (window.lucide) lucide.createIcons();
 
         if (mode === 'text' || mode === 'both') {
@@ -577,13 +688,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Custom Select Component
+    // Custom Select Component (WCAG 2.1 AA accessible)
     class CustomSelect {
         constructor(originalSelect) {
             this.originalSelect = originalSelect;
             // Prevent double initialization
             if (this.originalSelect.dataset.customized) return;
             this.originalSelect.dataset.customized = "true";
+            this._uid = 'csel-' + Math.random().toString(36).slice(2, 8);
+            this._focusIdx = -1;
 
             this.wrapper = document.createElement('div');
             this.wrapper.className = 'custom-select-container';
@@ -594,6 +707,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             this.trigger = document.createElement('div');
             this.trigger.className = 'custom-select-trigger';
+            this.trigger.setAttribute('role', 'combobox');
+            this.trigger.setAttribute('aria-haspopup', 'listbox');
+            this.trigger.setAttribute('aria-expanded', 'false');
+            this.trigger.setAttribute('tabindex', '0');
+            this.trigger.setAttribute('aria-controls', this._uid + '-listbox');
             this.triggerText = document.createElement('span');
             this.trigger.appendChild(this.triggerText);
             
@@ -603,19 +721,22 @@ document.addEventListener('DOMContentLoaded', () => {
             
             this.optionsContainer = document.createElement('div');
             this.optionsContainer.className = 'custom-select-options';
+            this.optionsContainer.setAttribute('role', 'listbox');
+            this.optionsContainer.id = this._uid + '-listbox';
 
             this.wrapper.appendChild(this.trigger);
             this.wrapper.appendChild(this.optionsContainer);
 
             this.updateOptions();
 
+            // Toggle on click
             this.trigger.addEventListener('click', (e) => {
-                const isOpen = this.wrapper.classList.contains('open');
-                // Close all other instances first
-                document.querySelectorAll('.custom-select-container').forEach(c => c.classList.remove('open'));
-                if (!isOpen) this.wrapper.classList.add('open');
+                this._isOpen() ? this._close() : this._open();
                 e.stopPropagation();
             });
+
+            // Keyboard navigation
+            this.trigger.addEventListener('keydown', (e) => this._handleKey(e));
 
             this.originalSelect.addEventListener('change', () => this.updateSelection());
 
@@ -624,18 +745,106 @@ document.addEventListener('DOMContentLoaded', () => {
             this.observer.observe(this.originalSelect, { childList: true });
         }
 
+        _isOpen() { return this.wrapper.classList.contains('open'); }
+
+        _open() {
+            document.querySelectorAll('.custom-select-container').forEach(c => {
+                c.classList.remove('open');
+                c.querySelector('[role="combobox"]')?.setAttribute('aria-expanded', 'false');
+            });
+            this.wrapper.classList.add('open');
+            this.trigger.setAttribute('aria-expanded', 'true');
+            // Focus the currently selected option
+            this._focusIdx = this.originalSelect.selectedIndex;
+            this._highlightOption(this._focusIdx);
+        }
+
+        _close() {
+            this.wrapper.classList.remove('open');
+            this.trigger.setAttribute('aria-expanded', 'false');
+            this._focusIdx = -1;
+            this.trigger.focus();
+        }
+
+        _selectIdx(idx) {
+            const opts = this.originalSelect.options;
+            if (idx < 0 || idx >= opts.length) return;
+            this.originalSelect.value = opts[idx].value;
+            this.originalSelect.dispatchEvent(new Event('change'));
+            this._close();
+        }
+
+        _highlightOption(idx) {
+            const children = Array.from(this.optionsContainer.children);
+            children.forEach(c => c.classList.remove('focused'));
+            if (idx >= 0 && idx < children.length) {
+                children[idx].classList.add('focused');
+                children[idx].scrollIntoView({ block: 'nearest' });
+                this.trigger.setAttribute('aria-activedescendant', children[idx].id);
+            }
+        }
+
+        _handleKey(e) {
+            const optCount = this.originalSelect.options.length;
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    if (!this._isOpen()) { this._open(); return; }
+                    this._focusIdx = Math.min(this._focusIdx + 1, optCount - 1);
+                    this._highlightOption(this._focusIdx);
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    if (!this._isOpen()) { this._open(); return; }
+                    this._focusIdx = Math.max(this._focusIdx - 1, 0);
+                    this._highlightOption(this._focusIdx);
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    this._focusIdx = 0;
+                    this._highlightOption(this._focusIdx);
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    this._focusIdx = optCount - 1;
+                    this._highlightOption(this._focusIdx);
+                    break;
+                case 'Enter':
+                case ' ':
+                    e.preventDefault();
+                    if (this._isOpen() && this._focusIdx >= 0) {
+                        this._selectIdx(this._focusIdx);
+                    } else {
+                        this._open();
+                    }
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    this._close();
+                    break;
+                case 'Tab':
+                    if (this._isOpen()) this._close();
+                    break;
+            }
+        }
+
         updateOptions() {
             this.optionsContainer.innerHTML = '';
-            Array.from(this.originalSelect.options).forEach(option => {
+            Array.from(this.originalSelect.options).forEach((option, i) => {
                 const optEl = document.createElement('div');
                 optEl.className = 'custom-select-option';
+                optEl.setAttribute('role', 'option');
+                optEl.id = this._uid + '-opt-' + i;
                 optEl.textContent = option.textContent;
-                if (option.selected) optEl.classList.add('selected');
+                if (option.selected) {
+                    optEl.classList.add('selected');
+                    optEl.setAttribute('aria-selected', 'true');
+                } else {
+                    optEl.setAttribute('aria-selected', 'false');
+                }
                 
                 optEl.addEventListener('click', (e) => {
-                    this.originalSelect.value = option.value;
-                    this.originalSelect.dispatchEvent(new Event('change'));
-                    this.wrapper.classList.remove('open');
+                    this._selectIdx(i);
                     e.stopPropagation();
                 });
                 this.optionsContainer.appendChild(optEl);
@@ -647,9 +856,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedOption = this.originalSelect.options[this.originalSelect.selectedIndex];
             if (selectedOption) {
                 this.triggerText.textContent = selectedOption.textContent;
-                Array.from(this.optionsContainer.children).forEach(child => {
-                    if (child.textContent === selectedOption.textContent) child.classList.add('selected');
-                    else child.classList.remove('selected');
+                Array.from(this.optionsContainer.children).forEach((child, i) => {
+                    const isSel = child.textContent === selectedOption.textContent;
+                    child.classList.toggle('selected', isSel);
+                    child.setAttribute('aria-selected', isSel ? 'true' : 'false');
                 });
             } else {
                 this.triggerText.textContent = 'Select...';
@@ -659,7 +869,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Close options when clicking outside
     document.addEventListener('click', () => {
-        document.querySelectorAll('.custom-select-container').forEach(c => c.classList.remove('open'));
+        document.querySelectorAll('.custom-select-container').forEach(c => {
+            c.classList.remove('open');
+            c.querySelector('[role="combobox"]')?.setAttribute('aria-expanded', 'false');
+        });
     });
 
     // Auto-init all select boxes that exist in sidebar or modals
@@ -673,8 +886,40 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tab Navigation
     const tabBtns = document.querySelectorAll('.tab-btn');
     const tabPanes = document.querySelectorAll('.tab-pane');
+    const sideOnlyPanel = document.getElementById('side-only-panel');
+
+    function moveNodeToOutputSlot(nodeId, slotId) {
+        const node = document.getElementById(nodeId);
+        const slot = document.getElementById(slotId);
+        if (!node || !slot) return;
+        if (node.parentElement === slot) return;
+        slot.appendChild(node);
+        node.classList.add('in-output-console-panel');
+        node.classList.add(`output-panel-${nodeId}`);
+    }
+
+    function mountTabDataToOutputConsole() {
+        moveNodeToOutputSlot('brand-preview-panel', 'brand-output-slot');
+        // voice-persona-display stays in the sidebar; profile card renders in voice-output-slot
+
+        moveNodeToOutputSlot('crm-loading', 'crm-output-slot');
+        moveNodeToOutputSlot('crm-empty', 'crm-output-slot');
+        moveNodeToOutputSlot('crm-contacts-list', 'crm-output-slot');
+        moveNodeToOutputSlot('crm-stats', 'crm-output-slot');
+    }
+
+    function showTabOutputView(tabId) {
+        if (!sideOnlyPanel) return;
+        sideOnlyPanel.querySelectorAll('.tab-output-view').forEach(view => view.classList.add('hidden'));
+        const activeView = document.getElementById(`output-view-${tabId}`);
+        if (activeView) activeView.classList.remove('hidden');
+    }
+
+    mountTabDataToOutputConsole();
 
     // Helper to switch right-hand main content views based on tab
+    const dashboardSubNav = document.getElementById('dashboard-sub-nav');
+
     function switchMainView(tabId) {
         const emptyState = document.getElementById('empty-state');
         const resultsContent = document.getElementById('results-content');
@@ -686,12 +931,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if(surveillanceView) surveillanceView.classList.add('hidden');
         if(expansionPanel) expansionPanel.classList.add('hidden');
         if(historyView) historyView.classList.add('hidden');
+        if(sideOnlyPanel) sideOnlyPanel.classList.add('hidden');
+        const _dv = document.getElementById('drafts-view');
+        if(_dv) _dv.classList.add('hidden');
         
+        // Show/hide dashboard sub-nav
+        if (dashboardSubNav) {
+            dashboardSubNav.style.display = (tabId === 'dashboard' || tabId === 'brand-assets' || tabId === 'crm-hub') ? '' : 'none';
+        }
+
         if (tabId === 'dashboard') {
-            if(emptyState) emptyState.style.display = 'none';
-            if(resultsContent) resultsContent.classList.add('hidden');
-            if(surveillanceView) surveillanceView.classList.remove('hidden');
-            loadSurveillanceData();
+            // Route based on active dashboard sub-tab
+            const activeSub = dashboardSubNav?.querySelector('.sub-tab-btn.active')?.dataset.subTab || 'surveillance';
+            _applyDashboardSubView(activeSub);
         } else if (tabId === 'generate') {
             const progress = document.getElementById('generation-progress');
             if (resultsContent && !resultsContent.classList.contains('hidden')) {
@@ -704,27 +956,106 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (tabId === 'competitor') {
             if(emptyState) emptyState.style.display = 'flex'; 
             if(resultsContent) resultsContent.classList.add('hidden');
+        } else if (tabId === 'voice-engine') {
+            if(emptyState) emptyState.style.display = 'none';
+            if(resultsContent) resultsContent.classList.add('hidden');
+            if(sideOnlyPanel) sideOnlyPanel.classList.remove('hidden');
+            showTabOutputView(tabId);
+            refreshSidePanelData(tabId);
+        } else if (tabId === 'brand-assets' || tabId === 'crm-hub') {
+            // These are now dashboard sub-tabs
+            if(emptyState) emptyState.style.display = 'none';
+            if(resultsContent) resultsContent.classList.add('hidden');
+            if(sideOnlyPanel) sideOnlyPanel.classList.remove('hidden');
+            showTabOutputView(tabId);
+            refreshSidePanelData(tabId);
         }
     }
 
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
+    // Apply the correct main-content view for a dashboard sub-tab
+    function _applyDashboardSubView(subTab) {
+        const emptyState = document.getElementById('empty-state');
+        const resultsContent = document.getElementById('results-content');
+        const surveillanceView = document.getElementById('surveillance-view');
+        const dv = document.getElementById('drafts-view');
+        if(emptyState) emptyState.style.display = 'none';
+        if(resultsContent) resultsContent.classList.add('hidden');
+        if(surveillanceView) surveillanceView.classList.add('hidden');
+        if(dv) dv.classList.add('hidden');
+        if(sideOnlyPanel) sideOnlyPanel.classList.add('hidden');
+
+        if (subTab === 'surveillance') {
+            if(surveillanceView) surveillanceView.classList.remove('hidden');
+            loadSurveillanceData();
+        } else if (subTab === 'drafts') {
+            if(dv) { dv.classList.remove('hidden'); if(typeof loadDrafts==='function') loadDrafts(); }
+        } else if (subTab === 'brand-assets' || subTab === 'crm-hub') {
+            if(sideOnlyPanel) sideOnlyPanel.classList.remove('hidden');
+            showTabOutputView(subTab);
+            refreshSidePanelData(subTab);
+        }
+    }
+
+    function animateActivePane(tabId) {
+        const pane = document.getElementById(`tab-${tabId}`);
+        if (!pane) return;
+        pane.classList.remove('pane-enter');
+        // Force reflow so animation can replay on repeated tab clicks
+        void pane.offsetWidth;
+        pane.classList.add('pane-enter');
+    }
+
+    function refreshSidePanelData(tabId) {
+        if (tabId === 'brand-assets' && typeof window.loadBrandAssets === 'function') {
+            window.loadBrandAssets();
+        }
+        if (tabId === 'voice-engine' && typeof window.loadVoicePersona === 'function') {
+            window.loadVoicePersona({ emitSuccessLog: false });
+        }
+        if (tabId === 'crm-hub' && typeof window.loadCRMHubContacts === 'function') {
+            window.loadCRMHubContacts();
+        }
+    }
+
+    // Event delegation on parent — survives lucide.createIcons() replacing child <i> elements
+    const tabNav = tabBtns[0]?.parentElement;
+    if (tabNav) {
+        tabNav.addEventListener('click', (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
             const tabId = btn.dataset.tab;
+            if (!tabId) return;
             tabBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            tabPanes.forEach(pane => {
-                pane.classList.remove('active');
-                if (pane.id === `tab-${tabId}`) {
-                    pane.classList.add('active');
+
+            if (tabId === 'dashboard') {
+                // Route to the correct sidebar pane based on active dashboard sub-tab
+                const activeSub = dashboardSubNav?.querySelector('.sub-tab-btn.active')?.dataset.subTab || 'surveillance';
+                tabPanes.forEach(p => p.classList.remove('active'));
+                if (activeSub === 'brand-assets' || activeSub === 'crm-hub') {
+                    const targetPane = document.getElementById(`tab-${activeSub}`);
+                    if (targetPane) targetPane.classList.add('active');
+                } else {
+                    const dashPane = document.getElementById('tab-dashboard');
+                    if (dashPane) dashPane.classList.add('active');
                 }
-            });
-            if (tabId === 'history') {
-                loadHistory();
+                switchMainView('dashboard');
             } else {
-                switchMainView(tabId);
+                tabPanes.forEach(pane => {
+                    pane.classList.remove('active');
+                    if (pane.id === `tab-${tabId}`) {
+                        pane.classList.add('active');
+                    }
+                });
+                animateActivePane(tabId);
+                if (tabId === 'history') {
+                    loadHistory();
+                } else {
+                    switchMainView(tabId);
+                }
             }
         });
-    });
+    }
 
     // Mode Dropdown Logic (Studio / Win Lab)
     const modeDropdownBtn = document.getElementById('mode-dropdown-btn');
@@ -737,43 +1068,59 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     if (modeDropdownBtn && modeDropdownPanel) {
-        modeDropdownBtn.addEventListener('click', (e) => {
-            const isOpen = modeDropdownPanel.style.display === 'block';
-            modeDropdownPanel.style.display = isOpen ? 'none' : 'block';
-            e.stopPropagation();
-        });
+        // Event delegation on wrapper — survives lucide.createIcons() replacing child <i>
+        const modeWrapper = modeDropdownBtn.closest('.mode-dropdown-wrapper') || modeDropdownBtn.parentElement;
+        if (modeWrapper) {
+            modeWrapper.addEventListener('click', (e) => {
+                if (e.target.closest('#mode-dropdown-panel')) return; // let panel handler deal with option clicks
+                if (e.target.closest('#mode-dropdown-btn') || e.target === modeDropdownBtn) {
+                    const isOpen = modeDropdownPanel.style.display === 'block';
+                    modeDropdownPanel.style.display = isOpen ? 'none' : 'block';
+                    e.stopPropagation();
+                }
+            });
+        }
 
         document.addEventListener('click', (e) => {
-            if (!modeDropdownPanel.contains(e.target) && e.target !== modeDropdownBtn) {
+            if (!modeDropdownPanel.contains(e.target) && !e.target.closest('#mode-dropdown-btn')) {
                 modeDropdownPanel.style.display = 'none';
             }
         });
 
-        document.querySelectorAll('.mode-option').forEach(opt => {
-            opt.addEventListener('click', () => {
-                const tabId = opt.dataset.tab;
+        // Event delegation — survives lucide.createIcons() replacing child elements
+        modeDropdownPanel.addEventListener('click', (e) => {
+            const opt = e.target.closest('.mode-option');
+            if (!opt) return;
+            const tabId = opt.dataset.tab;
+            if (!tabId) return;
 
-                // Update dropdown label
-                const meta = modeIcons[tabId];
-                if (meta && modeDropdownLabel) {
-                    modeDropdownLabel.innerHTML = `<i data-lucide="${meta.icon}" style="width:16px;height:16px;color:var(--brand-primary);flex-shrink:0;"></i>${meta.label}`;
-                    if (window.lucide) lucide.createIcons();
-                }
+            // Update dropdown label
+            const meta = modeIcons[tabId];
+            if (meta && modeDropdownLabel) {
+                modeDropdownLabel.innerHTML = `<i data-lucide="${meta.icon}" style="width:16px;height:16px;color:var(--brand-primary);flex-shrink:0;"></i>${meta.label}`;
+                if (window.lucide) lucide.createIcons();
+            }
 
-                // Close panel
-                modeDropdownPanel.style.display = 'none';
+            // Close panel
+            modeDropdownPanel.style.display = 'none';
 
-                // Switch sidebar pane (reuse existing logic)
-                tabPanes.forEach(pane => {
-                    pane.classList.remove('active');
-                    if (pane.id === `tab-${tabId}`) pane.classList.add('active');
-                });
+            // Hide dashboard sub-nav when switching to Studio/Win Lab
+            if (dashboardSubNav) dashboardSubNav.style.display = 'none';
 
-                // Remove active from dashboard icon btn, keep dropdown as "active" visually
-                tabBtns.forEach(b => b.classList.remove('active'));
-
-                switchMainView(tabId);
+            // Switch sidebar pane (reuse existing logic)
+            tabPanes.forEach(pane => {
+                pane.classList.remove('active');
+                if (pane.id === `tab-${tabId}`) pane.classList.add('active');
             });
+            animateActivePane(tabId);
+
+            // Remove active from dashboard icon btn, keep dropdown as "active" visually
+            tabBtns.forEach(b => b.classList.remove('active'));
+            // Mark active option in dropdown
+            modeDropdownPanel.querySelectorAll('.mode-option').forEach(o => o.classList.remove('active-option'));
+            opt.classList.add('active-option');
+
+            switchMainView(tabId);
         });
     }
 
@@ -994,9 +1341,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         let frontBorderHover = 'var(--border-hover)';
                         
                         if (item.tier === 'A') {
-                            frontBg = 'linear-gradient(to bottom right, rgba(249, 199, 79, 0.08), var(--bg-main))';
-                            frontBorder = 'rgba(249, 199, 79, 0.15)';
-                            frontBorderHover = 'rgba(249, 199, 79, 0.4)';
+                            frontBg = 'linear-gradient(to bottom right, rgba(var(--brand-primary-rgb), 0.08), var(--bg-main))';
+                            frontBorder = 'rgba(var(--brand-primary-rgb), 0.15)';
+                            frontBorderHover = 'rgba(var(--brand-primary-rgb), 0.4)';
                         } else if (item.tier === 'B') {
                             frontBg = 'linear-gradient(to bottom right, rgba(96, 165, 250, 0.06), var(--bg-main))';
                             frontBorder = 'rgba(96, 165, 250, 0.15)';
@@ -1017,6 +1364,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const thumbSrc = item.preview_image_url || item.video_thumbnail || (item.image_urls && item.image_urls.length > 0 ? (Array.isArray(item.image_urls) ? item.image_urls[0] : item.image_urls.split(',')[0]) : '');
                         const postType = item.type || 'text';
                         const typeIcon = { poll: 'bar-chart-2', carousel: 'layers', image: 'image', video: 'video', text: 'file-text' }[postType] || 'file-text';
+                            const safeTitle = window.sanitizeStr(item.title || 'LinkedIn Post');
                         
                         const showFallback = "this.style.display='none';var n=this.nextElementSibling;if(n)n.classList.remove('hidden');";
                         const thumbHtml = thumbSrc
@@ -1029,7 +1377,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                </div>`;
 
                         const fullText = item.text || "";
-                        const textPreview = fullText.length > 130 ? fullText.substring(0, 130).trim() + '…' : fullText;
+                        const textPreview = window.sanitizeStr(fullText.length > 130 ? fullText.substring(0, 130).trim() + '…' : fullText);
                         
                         // Format Date
                         let dateStr = item.time_since_posted || '';
@@ -1054,12 +1402,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                             <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                                                 ${authorAvatar}
                                                 <div style="display:flex; flex-direction:column; line-height:1.2;">
-                                                    <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${item.author_name || 'Anonymous'}</span>
+                                                    <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${window.sanitizeStr(item.author_name || 'Anonymous')}</span>
                                                     <span style="font-size:0.75rem; color:var(--text-tertiary);">${dateStr}</span>
                                                 </div>
                                             </div>
 
-                                            <div class="yt-title" style="text-wrap: balance; font-size: 1.05rem; line-height: 1.4;">${item.title || 'LinkedIn Post'}</div>
+                                            <div class="yt-title" style="text-wrap: balance; font-size: 1.05rem; line-height: 1.4;">${window.sanitizeStr(item.title || 'LinkedIn Post')}</div>
                                             <div class="yt-meta" style="margin-top: 6px; font-variant-numeric: tabular-nums;">
                                                 <span><i data-lucide="thumbs-up" style="width:12px;height:12px;margin-right:2px;display:inline-block;vertical-align:middle;"></i>${item.engagement_score || 0}</span>
                                                 <span class="yt-meta-dot" aria-hidden="true">·</span>
@@ -1071,7 +1419,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <div class="yt-actions" style="margin-top: 16px; padding: 0;">
                                         <button class="yt-action-btn expand-surv-btn"><i data-lucide="maximize-2"></i> Expand</button>
                                         ${item.url ? `<a href="${item.url}" target="_blank" class="yt-action-btn"><i data-lucide="external-link"></i> Link</a>` : ''}
-                                        <button class="yt-action-btn repurpose-surv-btn" style="color: var(--accent); border-color: rgba(249, 199, 79, 0.3);"><i data-lucide="zap"></i> Repurpose</button>
+                                        <button class="yt-action-btn repurpose-surv-btn" style="color: var(--accent); border-color: rgba(var(--brand-primary-rgb), 0.3);"><i data-lucide="zap"></i> Repurpose</button>
                                     </div>
                                 </div>
                                 <div class="surv-card-back">
@@ -1138,6 +1486,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const postType = item.type || 'text';
         const typeIcon = { poll: 'bar-chart-2', carousel: 'layers', image: 'image', video: 'video', text: 'file-text' }[postType] || 'file-text';
+                            const safeTitle = window.sanitizeStr(item.title || 'LinkedIn Post');
 
         // Parse image URLs (supports array from new backend or legacy comma string)
         const parsedImageUrls = _parseImageUrls(item.image_urls);
@@ -1152,10 +1501,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Text preview (first ~150 chars)
         const fullText = item.text || "";
-        const textPreview = fullText.length > 150 ? fullText.substring(0, 150).trim() + '…' : fullText;
+        const textPreview = window.sanitizeStr(fullText.length > 150 ? fullText.substring(0, 150).trim() + '…' : fullText);
 
         // Author info
-        const authorName = item.author_name || 'Unknown';
+        const authorName = window.sanitizeStr(item.author_name || 'Unknown');
         const authorPic = item.author_profile_pic || '';
 
         // Engagement
@@ -1198,7 +1547,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ${avatarHtml}
                 </div>
                 <div class="yt-body-right">
-                    <div class="yt-title">${item.title || item.url || 'Post'}</div>
+                    <div class="yt-title">${window.sanitizeStr(item.title || item.url || 'Post')}</div>
                     <div class="yt-meta">${authorName}</div>
                     <div class="yt-meta"><span>${reactions} reactions</span><span class="yt-meta-dot">·</span><span>${comments} comments</span><span class="yt-meta-dot">·</span><span class="yt-type-chip"><i data-lucide="${typeIcon}"></i> ${postType}</span></div>
                     ${textPreview ? `<div class="yt-text-preview">${textPreview}</div>` : ''}
@@ -1260,12 +1609,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fullPostModal._carouselCleanup) { fullPostModal._carouselCleanup(); fullPostModal._carouselCleanup = null; }
 
         currentModalItem = item;
-        modalPostTitle.textContent = item.title || "Full LinkedIn Post";
+        modalPostTitle.textContent = window.sanitizeStr(item.title || "Full LinkedIn Post");
         modalPostText.textContent = item.text || "No content available.";
 
         const meta = item.reactions_count !== undefined ? `${item.reactions_count} reactions` : "";
         const postType = item.type || 'text';
         const typeIcon = { poll: 'bar-chart-2', carousel: 'layers', image: 'image', video: 'video', text: 'file-text' }[postType] || 'file-text';
+                            const safeTitle = window.sanitizeStr(item.title || 'LinkedIn Post');
 
         // 1. Handle Visual Preview (Top of Modal)
         const visualContainer = document.getElementById('modal-visual-preview');
@@ -1340,7 +1690,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <button class="slide-nav-btn slide-nav-next"><i data-lucide="chevron-right"></i></button>
                         ` : ''}
                         <div class="carousel-bottom-bar">
-                            ${item.document_title ? `<span class="carousel-doc-title">${item.document_title}</span>` : ''}
+                            ${item.document_title ? `<span class="carousel-doc-title">${window.sanitizeStr(item.document_title)}</span>` : ''}
                             ${item.document_url ? `<button class="download-overlay-btn" id="carousel-download-btn"><i data-lucide="download"></i> Download PDF</button>` : ''}
                         </div>
                     </div>
@@ -1375,7 +1725,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 visualContainer.innerHTML = `
                     <div class="modal-visual-placeholder">
                         <i data-lucide="layers"></i>
-                        <p>${item.document_title || 'Carousel Document'}</p>
+                        <p>${window.sanitizeStr(item.document_title || 'Carousel Document')}</p>
                         ${item.document_url ? `<button class="action-btn success-btn" onclick="_downloadAsset('${item.document_url}', 'linkedin-carousel.pdf')" style="margin-top:10px;"><i data-lucide="download"></i> Download PDF</button>` : ''}
                         ${item.url ? `<a href="${item.url}" target="_blank" class="action-btn ghost-btn" style="margin-top:10px;">View Carousel on LinkedIn</a>` : ''}
                     </div>`;
@@ -1390,7 +1740,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modalPostMeta.innerHTML = `
             <div class="stat-item"><i data-lucide="thumbs-up" style="width: 18px; height: 18px;"></i> ${meta}</div>
             <div class="stat-item"><i data-lucide="${typeIcon}" style="width: 18px; height: 18px;"></i> ${postType}</div>
-            <div class="stat-item"><i data-lucide="user" style="width: 18px; height: 18px;"></i> ${item.author_name || 'Unknown'}</div>
+            <div class="stat-item"><i data-lucide="user" style="width: 18px; height: 18px;"></i> ${window.sanitizeStr(item.author_name || 'Unknown')}</div>
             ${item.url ? `<a href="${item.url}" target="_blank" style="margin-left:auto; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; color: var(--brand-primary); transition: opacity 0.2s, transform 0.2s;" onmouseover="this.style.opacity='0.8'; this.style.transform='scale(1.1)'" onmouseout="this.style.opacity='1'; this.style.transform='scale(1)'" title="View Original Post"><i data-lucide="external-link" style="width: 22px; height: 22px;"></i></a>` : ''}
         `;
         
@@ -1588,6 +1938,8 @@ document.addEventListener('DOMContentLoaded', () => {
             user_id: window.appUserId || null
         };
 
+        maybeAttachBrandKitPayload(data, data.color_palette);
+
         repurposeModal.classList.add('hidden');
         addSystemLog(`Initiating advanced repurpose generation...`, 'neural');
 
@@ -1609,7 +1961,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function createYoutubeCard(item) {
         const card = document.createElement('div');
-        card.className = 'console-research-card';
+        card.className = 'yt-glass-card';
         card.style.gridColumn = 'span 2';
 
         // CRITICAL: Store full text for the repurpose selector
@@ -1617,7 +1969,8 @@ document.addEventListener('DOMContentLoaded', () => {
         card.dataset.fullText = fullContent;
 
         const thumbSrc = item.thumbnail || item.thumbnailUrl || '';
-        const linksHtml = (item.links || []).map(l => `<a href="${l}" target="_blank" class="resource-link" style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:4px;">${l}</a>`).join('');
+        const isShort = item.is_short || false;
+        const linksHtml = (item.links || []).map(l => `<a href="${l}" target="_blank" class="yt-glass-link">${l}</a>`).join('');
 
         // Helper for formatting numbers
         const fmt = (n) => {
@@ -1629,79 +1982,71 @@ document.addEventListener('DOMContentLoaded', () => {
             return num.toString();
         };
 
+        const typeBadge = isShort
+            ? '<span class="yt-glass-badge yt-glass-badge--short"><i data-lucide="smartphone" style="width:10px;height:10px;"></i> Short</span>'
+            : '<span class="yt-glass-badge yt-glass-badge--video"><i data-lucide="play" style="width:10px;height:10px;"></i> Video</span>';
+
+        const thumbAspect = isShort ? 'aspect-ratio:9/16; max-height:160px; width:90px;' : 'aspect-ratio:16/9; width:140px;';
+
         card.innerHTML = `
-            <div class="yt-header" style="display:flex; gap:12px; align-items:flex-start;">
-                <div style="position:relative; width: 120px; flex-shrink:0;">
-                    <img src="${thumbSrc}" class="card-thumbnail" style="width: 100%; height: auto; aspect-ratio:16/9; object-fit: cover; border-radius: 6px;" onerror="this.src='https://via.placeholder.com/140x80?text=No+Thumbnail'">
-                    <a href="${thumbSrc}" target="_blank" class="icon-btn" style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.6); color:white; padding:4px; border-radius:4px; width:20px; height:20px; display:flex; align-items:center; justify-content:center; text-decoration:none;" title="Open Thumbnail"><i data-lucide="download" style="width:12px; height:12px;"></i></a>
+            <div class="yt-glass-header">
+                <div class="yt-glass-thumb-wrap" style="${thumbAspect}">
+                    <img src="${thumbSrc}" class="yt-glass-thumb" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="yt-glass-thumb-fallback" style="display:none;"><i data-lucide="image-off" style="width:24px;height:24px;opacity:0.4;"></i></div>
+                    ${typeBadge}
                 </div>
-                <div style="flex:1;">
-                    <div class="research-card-title" style="font-size:1rem; font-weight:600; margin-bottom:0.25rem; line-height:1.3;">${item.title}</div>
-                    <div class="card-stats" style="color:var(--text-secondary); font-size:0.75rem;">
-                        <div class="stat-item"><i data-lucide="user" style="width:14px; height:14px;"></i> ${item.channelName || 'Unknown'}</div>
-                    </div>
+                <div class="yt-glass-meta">
+                    <div class="yt-glass-title">${window.sanitizeStr(item.title)}</div>
+                    <div class="yt-glass-channel"><i data-lucide="user" style="width:12px;height:12px;"></i> ${window.sanitizeStr(item.channelName || 'Unknown')}${item.duration && item.duration !== 'N/A' ? ' · ' + item.duration : ''}</div>
                 </div>
             </div>
 
-            <div class="yt-content-tabs" style="margin-top:10px;">
-                <div class="yt-tab-nav" style="display:flex; gap:0.5rem; margin-bottom:8px; flex-wrap:wrap;">
-                    <button class="yt-sub-tab active" style="padding:6px 12px; font-weight:600; font-size:0.8rem;" data-target="stats">Stats</button>
-                    <button class="yt-sub-tab" style="padding:6px 12px; font-weight:600; font-size:0.8rem;" data-target="res">Resources</button>
-                    <button class="yt-sub-tab" style="padding:6px 12px; font-weight:600; font-size:0.8rem;" data-target="desc">Description</button>
-                    <button class="yt-sub-tab" style="padding:6px 12px; font-weight:600; font-size:0.8rem;" data-target="trans">Transcript</button>
-                    <button class="yt-sub-tab" style="padding:6px 12px; font-weight:600; font-size:0.8rem;" data-target="draft">Draft Post</button>
+            <div class="yt-glass-tabs">
+                <div class="yt-glass-tab-nav">
+                    <button class="yt-glass-tab active" data-target="stats">Stats</button>
+                    <button class="yt-glass-tab" data-target="res">Resources</button>
+                    <button class="yt-glass-tab" data-target="desc">Description</button>
+                    <button class="yt-glass-tab" data-target="trans">Transcript</button>
+                    <button class="yt-glass-tab" data-target="draft">Draft</button>
                 </div>
                 
-                <div class="yt-tab-pane-container" style="background:var(--bg-app); padding:10px; border-radius:8px; font-size:0.85rem; max-height:250px; overflow-y:auto; border:1px solid var(--border);">
-                    <!-- Stats Grid -->
-                    <div class="yt-sub-pane stats">
-                         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px;">
-                            <div style="background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; text-align:center;">
-                                <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-bottom:2px;">${fmt(item.viewCount)}</div>
-                                <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px; opacity:0.6;">Views</div>
-                            </div>
-                            <div style="background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; text-align:center;">
-                                <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-bottom:2px;">${fmt(item.likes)}</div>
-                                <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px; opacity:0.6;">Likes</div>
-                            </div>
-                            <div style="background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; text-align:center;">
-                                <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-bottom:2px;">${fmt(item.commentsCount)}</div>
-                                <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px; opacity:0.6;">Comments</div>
-                            </div>
-                             <div style="background:rgba(255,255,255,0.03); padding:8px; border-radius:6px; text-align:center;">
-                                <div style="font-size:1.1rem; font-weight:700; color:var(--text-primary); margin-bottom:2px;">${fmt(item.subscribers)}</div>
-                                <div style="font-size:0.65rem; text-transform:uppercase; letter-spacing:0.5px; opacity:0.6;">Subs</div>
-                            </div>
-                         </div>
+                <div class="yt-glass-pane-container">
+                    <div class="yt-glass-pane stats">
+                        <div class="yt-glass-stats-grid">
+                            <div class="yt-glass-stat"><div class="yt-glass-stat-val">${fmt(item.viewCount)}</div><div class="yt-glass-stat-label">Views</div></div>
+                            <div class="yt-glass-stat"><div class="yt-glass-stat-val">${fmt(item.likes)}</div><div class="yt-glass-stat-label">Likes</div></div>
+                            <div class="yt-glass-stat"><div class="yt-glass-stat-val">${fmt(item.commentsCount)}</div><div class="yt-glass-stat-label">Comments</div></div>
+                            <div class="yt-glass-stat"><div class="yt-glass-stat-val">${fmt(item.subscribers)}</div><div class="yt-glass-stat-label">Subs</div></div>
+                        </div>
                     </div>
 
-                    <div class="yt-sub-pane res" style="display:none; line-height:1.6;">
-                        ${linksHtml || '<span style="opacity:0.5">No external links found in description.</span>'}
+                    <div class="yt-glass-pane res" style="display:none;">
+                        ${linksHtml || '<span class="yt-glass-empty">No external links found.</span>'}
                     </div>
-                    <div class="yt-sub-pane desc" style="display:none; position:relative;">
-                        <button class="icon-btn expand-desc-btn" style="position:absolute; top:0; right:0; padding:4px;" title="Expand Description"><i data-lucide="maximize-2" style="width:16px; height:16px;"></i></button>
-                        <div style="white-space:pre-wrap; line-height:1.6; padding-right:30px;">${item.description || 'No description.'}</div>
+                    <div class="yt-glass-pane desc" style="display:none; position:relative;">
+                        <button class="icon-btn expand-desc-btn yt-glass-expand-btn" title="Expand"><i data-lucide="maximize-2" style="width:14px;height:14px;"></i></button>
+                        <div class="yt-glass-text-body">${window.sanitizeStr(item.description || 'No description.')}</div>
                     </div>
-                    <div class="yt-sub-pane trans" style="display:none; position:relative;">
-                        <button class="icon-btn expand-trans-btn" style="position:absolute; top:0; right:0; padding:4px;" title="Expand Transcript"><i data-lucide="maximize-2" style="width:16px; height:16px;"></i></button>
-                        <div style="white-space:pre-wrap; font-family:monospace; font-size:0.85rem; line-height:1.6; color:var(--text-secondary); padding-right:30px; max-height: 250px; overflow-y: auto;">${item.transcript || 'No transcript.'}</div>
+                    <div class="yt-glass-pane trans" style="display:none; position:relative;">
+                        <button class="icon-btn expand-trans-btn yt-glass-expand-btn" title="Expand"><i data-lucide="maximize-2" style="width:14px;height:14px;"></i></button>
+                        <div class="yt-glass-text-body yt-glass-mono">${window.sanitizeStr(item.transcript || 'No transcript available.')}</div>
                     </div>
-                    <div class="yt-sub-pane draft" style="display:none; text-align:center; padding:1rem;">
-                        <p style="margin-bottom:1rem; font-size:0.9rem;">Repurpose this video into a post:</p>
-                        <button class="action-btn success-btn repurpose-yt-btn" style="width:100%"><i data-lucide="zap" style="width:18px; height:18px; vertical-align:middle; margin-right:6px;"></i> Draft Now</button>
+                    <div class="yt-glass-pane draft" style="display:none; text-align:center; padding:1rem;">
+                        <p style="margin-bottom:0.75rem; font-size:0.85rem; opacity:0.7;">Repurpose this ${isShort ? 'short' : 'video'} into a post</p>
+                        <button class="action-btn success-btn repurpose-yt-btn" style="width:100%;"><i data-lucide="zap" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;"></i> Draft Now</button>
                     </div>
                 </div>
             </div>
         `;
 
         // Tab switching logic
-        card.querySelectorAll('.yt-sub-tab').forEach(btn => {
+        card.querySelectorAll('.yt-glass-tab').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                card.querySelectorAll('.yt-sub-tab').forEach(b => b.classList.remove('active'));
+                card.querySelectorAll('.yt-glass-tab').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                card.querySelectorAll('.yt-sub-pane').forEach(p => p.style.display = 'none');
-                card.querySelector(`.yt-sub-pane.${btn.dataset.target}`).style.display = 'block';
+                card.querySelectorAll('.yt-glass-pane').forEach(p => p.style.display = 'none');
+                card.querySelector(`.yt-glass-pane.${btn.dataset.target}`).style.display = 'block';
             });
         });
 
@@ -1709,7 +2054,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.querySelector('.expand-desc-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             openFullPostModal({
-                title: `Description: ${item.title}`,
+                title: `Description: ${window.sanitizeStr(item.title)}`,
                 text: item.description || "No description available.",
                 type: 'text',
                 author_name: item.channelName,
@@ -1721,7 +2066,7 @@ document.addEventListener('DOMContentLoaded', () => {
         card.querySelector('.expand-trans-btn').addEventListener('click', (e) => {
             e.stopPropagation();
             openFullPostModal({
-                title: `Transcript: ${item.title}`,
+                title: `Transcript: ${window.sanitizeStr(item.title)}`,
                 text: item.transcript || "No transcript available.",
                 type: 'text',
                 author_name: item.channelName,
@@ -1830,6 +2175,8 @@ document.addEventListener('DOMContentLoaded', () => {
              purposeSelect.value = availablePurposes[0].value;
         }
 
+        // Fire change event so dependent UI (e.g. raw notes toggle) updates
+        purposeSelect.dispatchEvent(new Event('change'));
 
         // 2. COLOR PALETTE - only show for image aspect
         const colorPaletteGroup = document.getElementById('color-palette-group');
@@ -1885,8 +2232,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     updateVisualStyle(); // Initial state
 
+    // Show/hide Raw Weekly Notes textarea based on purpose
+    const purposeSelect = document.getElementById('purpose');
+    const rawNotesGroup = document.getElementById('raw-notes-group');
+    function toggleRawNotes() {
+        if (rawNotesGroup) {
+            rawNotesGroup.style.display = (purposeSelect && purposeSelect.value === 'storytelling') ? 'block' : 'none';
+        }
+    }
+    if (purposeSelect) purposeSelect.addEventListener('change', toggleRawNotes);
+    toggleRawNotes(); // Initial state
+
     // Color Palette Dropdown - render swatch preview on change
+    const defaultBrandKitPalette = {
+        id: 'brand_kit',
+        name: 'Brand Kit (My Brand)',
+        primary: '#F9C74F',
+        secondary: '#0E0E0E',
+        accent: '#FCF0D5',
+        neutral: '#111111',
+        dark: '#0E0E0E',
+        light: '#F0F0F0',
+        color_theory: 'Derived from active user brand settings.',
+        emotional_context: 'Brand-authentic and user-specific',
+        best_for: 'Any generation that should follow the active user brand kit',
+        usage_guidelines: {
+            primary_use: 'Primary emphasis and highlights',
+            secondary_use: 'Supporting structure and contrast',
+            accent_use: 'Focal accents and CTA highlights',
+            neutral_use: 'Background surfaces and breathing room'
+        }
+    };
+
+    function getBrandKitPalettePayload() {
+        try {
+            if (typeof window.getCurrentBrandKitPalette === 'function') {
+                const fromBrandAssets = window.getCurrentBrandKitPalette();
+                if (fromBrandAssets && typeof fromBrandAssets === 'object') {
+                    return fromBrandAssets;
+                }
+            }
+        } catch (_) {
+            // Fallback to defaults if brand-assets module is not ready yet
+        }
+        return { ...defaultBrandKitPalette };
+    }
+
+    function maybeAttachBrandKitPayload(payload, paletteId) {
+        if (paletteId === 'brand_kit') {
+            payload.brand_kit_palette = getBrandKitPalettePayload();
+        }
+    }
+
     const paletteSwatchMap = {
+        brand_kit: ['#0E0E0E', '#F9C74F', '#FCF0D5', '#111111', '#F0F0F0'],
         brand:     ['#0E0E0E','#F9C74F','#FCF0D5','#F9F9F9','#FFFFFF'],
         executive: ['#0F1A2E','#1B2A4A','#D4A853','#F0F2F5','#FFFFFF'],
         coral:     ['#E8634A','#F4A261','#2D2D2D','#FFF5F0','#FFFFFF'],
@@ -1896,7 +2295,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     function renderPalettePreviewTo(previewEl, id) {
         if (!previewEl) return;
-        const colors = paletteSwatchMap[id] || paletteSwatchMap.brand;
+        let colors = paletteSwatchMap[id] || paletteSwatchMap.brand;
+        if (id === 'brand_kit') {
+            const p = getBrandKitPalettePayload();
+            colors = [p.dark || p.secondary, p.primary, p.accent, p.neutral, p.light];
+        }
         previewEl.innerHTML = colors.map(c => {
             const needsBorder = ['#FFFFFF','#F9F9F9','#FCF0D5','#F0F2F5','#FFF5F0','#F5EDE0','#FAF7F2','#F1F5F9','#EDEDED','#F5F5F5'].includes(c);
             return `<span class="swatch" style="background:${c};${needsBorder ? 'border:1px solid rgba(255,255,255,0.15);' : ''}"></span>`;
@@ -1914,7 +2317,42 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPaletteDropdown('color-palette', 'palette-preview');
     setupPaletteDropdown('repurpose-color-palette', 'repurpose-palette-preview');
     setupPaletteDropdown('regen-tweak-color-palette', 'regen-tweak-palette-preview');
-    setupPaletteDropdown('regen-refine-color-palette', 'regen-refine-palette-preview');
+
+    // Auto Topic Toggle Logic
+    const autoTopicToggle = document.getElementById('auto-topic-toggle');
+    const topicInput = document.getElementById('topic');
+    const autoTopicHint = document.getElementById('auto-topic-hint');
+    if (autoTopicToggle && topicInput) {
+        autoTopicToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                topicInput.disabled = true;
+                topicInput.removeAttribute('required');
+                topicInput.value = '';
+                topicInput.placeholder = "Auto-generated by AI...";
+                topicInput.style.opacity = '0.5';
+                if (autoTopicHint) autoTopicHint.style.display = 'block';
+            } else {
+                topicInput.disabled = false;
+                topicInput.setAttribute('required', 'true');
+                topicInput.placeholder = "e.g. AI Trends 2026";
+                topicInput.style.opacity = '1';
+                if (autoTopicHint) autoTopicHint.style.display = 'none';
+            }
+        });
+    }
+
+    window.addEventListener('brand-kit-updated', () => {
+        const pairs = [
+            ['color-palette', 'palette-preview'],
+            ['repurpose-color-palette', 'repurpose-palette-preview'],
+            ['regen-tweak-color-palette', 'regen-tweak-palette-preview']
+        ];
+        pairs.forEach(([selectId, previewId]) => {
+            const sel = document.getElementById(selectId);
+            const prev = document.getElementById(previewId);
+            if (sel && prev) renderPalettePreviewTo(prev, sel.value);
+        });
+    });
 
     // --- REFERENCE IMAGE UPLOAD LOGIC ---
     // Helper: wire up a checkbox + file upload pair
@@ -1979,6 +2417,25 @@ document.addEventListener('DOMContentLoaded', () => {
             data.aspect_ratio = '4:5';
         }
 
+        // Auto Topic integration
+        if (autoTopicToggle && autoTopicToggle.checked) {
+            data.auto_topic = true;
+            data.topic = ""; // Will be populated by backend
+        }
+
+        // Include Lead Magnet integration
+        const leadMagnetToggle = document.getElementById('include-lead-magnet');
+        if (leadMagnetToggle) {
+            data.include_lead_magnet = leadMagnetToggle.checked;
+        }
+
+        // Only include raw_notes for storytelling purpose
+        if (data.purpose !== 'storytelling' || !data.raw_notes || !data.raw_notes.trim()) {
+            delete data.raw_notes;
+        }
+
+        maybeAttachBrandKitPayload(data, data.color_palette);
+
         // REFERENCE IMAGE: Read file as base64 if provided
         const refToggle = document.getElementById('reference-image-toggle');
         const refFileInput = document.getElementById('reference-image-file');
@@ -1988,7 +2445,11 @@ document.addEventListener('DOMContentLoaded', () => {
         data.user_id = window.appUserId || null;
 
         console.log('Form Submitted:', data);
-        addSystemLog(`Starting content generation for: "${data.topic}"`, 'script');
+        if (data.auto_topic) {
+            addSystemLog(`Starting auto-topic generation...`, 'script');
+        } else {
+            addSystemLog(`Starting content generation for: "${data.topic}"`, 'script');
+        }
 
         submitBtn.disabled = true;
         submitBtn.querySelector('.btn-content').textContent = 'Generating...';
@@ -2028,6 +2489,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         captionPreview.textContent = displayCaption;
         resultsSection.classList.remove('hidden');
+        showCaptionSelectHint();
 
         approveBtn.disabled = false;
         approveBtn.textContent = 'Approve & Send to Baserow';
@@ -2061,15 +2523,27 @@ document.addEventListener('DOMContentLoaded', () => {
             img.src = `${result.asset_url}${sep}t=${cacheBuster}`;
             img.alt = 'Generated Asset Preview';
             img.id = 'preview-image';
+            img.dataset.rawUrl = result.asset_url; // Store raw URL for Refine modal
             img.style.maxWidth = '100%';
             img.style.borderRadius = '12px';
             img.style.marginTop = '1rem';
 
+            let _imgRetried = false;
             img.onerror = function () {
-                console.error("Failed to load image:", img.src);
+                // Retry once without cache buster (might be a caching issue)
+                if (!_imgRetried) {
+                    _imgRetried = true;
+                    console.warn("[Image] First load failed, retrying without cache buster:", result.asset_url);
+                    img.src = result.asset_url;
+                    return;
+                }
+                console.error("[Image] Failed to load after retry:", result.asset_url);
+                const isLocal = result.asset_url.startsWith('/assets/');
                 const errText = document.createElement('div');
-                errText.style.color = 'red';
-                errText.textContent = '❌ Failed to load image. Check console.';
+                errText.style.cssText = 'color: var(--brand-primary, #F9C74F); font-size: 0.85rem; text-align: center; padding: 1rem;';
+                errText.innerHTML = isLocal
+                    ? '⚠️ Image expired (server restarted). Click <b>Regen Image</b> to generate a new one.'
+                    : '❌ Failed to load image. Try refreshing or click <b>Regen Image</b>.';
                 assetPreview.appendChild(errText);
             };
 
@@ -2144,6 +2618,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     imagePromptContainer.appendChild(promptText);
                 }
             }
+        } else if (result.image_error || (inputs && inputs.visual_aspect === 'image')) {
+            // IMAGE WAS REQUESTED BUT FAILED — show error in asset column
+            if (assetCol) {
+                assetCol.style.display = 'flex';
+                assetCol.style.flex = '2';
+            }
+            const captionCol = document.querySelector('.caption-col');
+            if (captionCol) captionCol.style.flex = '3';
+            if (regenImageBtn) regenImageBtn.style.display = 'inline-flex';
+
+            const errBox = document.createElement('div');
+            errBox.style.cssText = 'padding:24px;text-align:center;color:var(--text-tertiary);';
+            const errIcon = document.createElement('div');
+            errIcon.innerHTML = '<i data-lucide="image-off" style="width:48px;height:48px;opacity:0.4;"></i>';
+            errBox.appendChild(errIcon);
+            const errMsg = document.createElement('div');
+            errMsg.style.cssText = 'margin-top:12px;font-size:0.85rem;';
+            errMsg.textContent = result.image_error || 'Image generation failed. Try "Regen Image" to retry.';
+            errBox.appendChild(errMsg);
+            assetPreview.appendChild(errBox);
+
+            addSystemLog(`Image generation failed: ${result.image_error || 'Unknown error'}`, 'error');
         } else {
             // HIDE Image Section (Text Only Mode)
             if (assetCol) assetCol.style.display = 'none';
@@ -2156,51 +2652,51 @@ document.addEventListener('DOMContentLoaded', () => {
         // CAROUSEL SLIDE RENDERING
         const carouselSlidesPanel = document.getElementById('carousel-slides-panel');
         const carouselSlidesContainer = document.getElementById('carousel-slides-container');
-        
+
         if (result.type === 'carousel' && result.carousel_layout && result.carousel_layout.slides) {
             // Show carousel panel and populate slides
             if (carouselSlidesPanel) carouselSlidesPanel.classList.remove('hidden');
             if (carouselSlidesContainer) {
                 carouselSlidesContainer.innerHTML = ''; // Clear previous
-                
+
                 // Use clean_caption if available, otherwise split the caption
                 if (result.clean_caption) {
                     captionPreview.textContent = result.clean_caption;
                 }
-                
+
                 // Render each slide as a separate panel
                 result.carousel_layout.slides.forEach((slide, index) => {
                     const slidePanel = document.createElement('div');
                     slidePanel.className = 'carousel-slide-panel';
-                    
+
                     const slideHeader = document.createElement('div');
                     slideHeader.className = 'slide-header';
                     slideHeader.innerHTML = `<strong>Slide ${slide.number}</strong> <span class="slide-type-badge">${slide.type.toUpperCase()}</span>`;
-                    
+
                     const slideContent = document.createElement('div');
                     slideContent.className = 'slide-content';
-                    
+
                     if (slide.title) {
                         const titleEl = document.createElement('div');
                         titleEl.className = 'slide-field';
-                        titleEl.innerHTML = `<strong>Title:</strong> ${slide.title}`;
+                        titleEl.innerHTML = `<strong>Title:</strong> ${window.sanitizeStr(slide.title)}`;
                         slideContent.appendChild(titleEl);
                     }
-                    
+
                    if (slide.subtitle) {
                         const subtitleEl = document.createElement('div');
                         subtitleEl.className = 'slide-field';
-                        subtitleEl.innerHTML = `<strong>Subtitle:</strong> ${slide.subtitle}`;
+                        subtitleEl.innerHTML = `<strong>Subtitle:</strong> ${window.sanitizeStr(slide.subtitle)}`;
                         slideContent.appendChild(subtitleEl);
                     }
-                    
+
                     if (slide.body) {
                         const bodyEl = document.createElement('div');
                         bodyEl.className = 'slide-field';
-                        bodyEl.innerHTML = `<strong>Body:</strong> ${slide.body}`;
+                        bodyEl.innerHTML = `<strong>Body:</strong> ${window.sanitizeStr(slide.body)}`;
                         slideContent.appendChild(bodyEl);
                     }
-                    
+
                     slidePanel.appendChild(slideHeader);
                     slidePanel.appendChild(slideContent);
                     carouselSlidesContainer.appendChild(slidePanel);
@@ -2209,6 +2705,58 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // Hide carousel panel for non-carousel types
             if (carouselSlidesPanel) carouselSlidesPanel.classList.add('hidden');
+        }
+
+        // LEAD MAGNETS RENDERING
+        const leadMagnetsContainer = document.getElementById('lead-magnets-container');
+        const leadMagnetsList = document.getElementById('lead-magnets-list');
+
+        if (result.lead_magnets && Array.isArray(result.lead_magnets) && result.lead_magnets.length > 0) {
+            if (leadMagnetsContainer) leadMagnetsContainer.classList.remove('hidden');
+            if (leadMagnetsList) {
+                leadMagnetsList.innerHTML = ''; // Clear previous
+                result.lead_magnets.forEach(lm => {
+                    const li = document.createElement('li');
+                    li.style.display = 'flex';
+                    li.style.alignItems = 'center';
+                    li.style.gap = '0.5rem';
+                    li.style.padding = '0.5rem';
+                    li.style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                    li.style.borderRadius = '0.25rem';
+                    li.style.fontSize = '0.875rem';
+                    li.innerHTML = `
+                        <i data-lucide="link" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                        <span style="font-weight: 500; color: var(--text-primary);">${window.sanitizeStr(lm.name)}</span>
+                        <span style="color: var(--text-muted);">—</span>
+                        <a href="${window.sanitizeStr(lm.url)}" target="_blank" style="color: var(--accent-color); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${window.sanitizeStr(lm.url)}</a>
+                        <button class="icon-btn copy-magnet-btn" data-url="${window.sanitizeStr(lm.url)}" title="Copy Link" style="margin-left: auto; padding: 4px;">
+                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    `;
+                    leadMagnetsList.appendChild(li);
+                });
+
+                // Add event listeners to copy buttons
+                const copyBtns = leadMagnetsList.querySelectorAll('.copy-magnet-btn');
+                copyBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const url = btn.getAttribute('data-url');
+                        navigator.clipboard.writeText(url).then(() => {
+                            const icon = btn.querySelector('i');
+                            const oldIcon = icon.getAttribute('data-lucide');
+                            icon.setAttribute('data-lucide', 'check');
+                            if (window.lucide) lucide.createIcons();
+                            setTimeout(() => {
+                                icon.setAttribute('data-lucide', oldIcon);
+                                if (window.lucide) lucide.createIcons();
+                            }, 2000);
+                        });
+                    });
+                });
+                if (window.lucide) lucide.createIcons();
+            }
+        } else {
+            if (leadMagnetsContainer) leadMagnetsContainer.classList.add('hidden');
         }
 
         // Add glow effect to Output Console
@@ -2286,11 +2834,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let _currentDraftFilter = 'all';
 
-    async function saveDraft(resultData) {
+    async function saveDraft(resultData, _retryCount = 0) {
         if (!resultData) return;
         const btn = saveDraftBtn || repurposeSaveDraftBtn;
         const origText = btn ? btn.innerHTML : '';
-        if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader" class="btn-icon" style="animation: spin 1s linear infinite;"></i> Saving...'; }
+        if (btn && _retryCount === 0) { btn.disabled = true; btn.innerHTML = '<i data-lucide="loader" class="btn-icon" style="animation: spin 1s linear infinite;"></i> Saving...'; }
 
         try {
             const res = await fetch('/api/drafts', {
@@ -2298,6 +2846,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json', 'X-User-ID': window.appUserId || 'default' },
                 body: JSON.stringify({ post_data: resultData, user_id: window.appUserId || null })
             });
+            // Retry once on 503 (transient auth timeout)
+            if (res.status === 503 && _retryCount < 1) {
+                console.warn('Draft save got 503, retrying in 1s...');
+                await new Promise(r => setTimeout(r, 1000));
+                return saveDraft(resultData, _retryCount + 1);
+            }
             const data = await res.json();
             if (res.ok) {
                 if (btn) btn.innerHTML = '<i data-lucide="check" class="btn-icon"></i> Saved!';
@@ -2538,7 +3092,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 p.style.borderColor = 'rgba(255,255,255,0.1)';
                 p.classList.remove('active');
             });
-            pill.style.background = 'rgba(249,199,79,0.15)';
+            pill.style.background = 'rgba(var(--brand-primary-rgb),0.15)';
             pill.style.color = 'var(--brand-primary)';
             pill.style.borderColor = 'rgba(255,255,255,0.15)';
             pill.classList.add('active');
@@ -2546,35 +3100,66 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Wire Drafts sub-tab switching to show/hide drafts view
-    const dashboardSubTabBtns = document.querySelectorAll('#tab-dashboard .sub-tab-btn');
-    dashboardSubTabBtns.forEach(btn => {
+    // Wire dashboard sub-tab switching (Surveillance, Drafts, Brand Assets, CRM Hub)
+    const _dashSubNav = document.getElementById('dashboard-sub-nav');
+    const _dashSubBtns = _dashSubNav ? _dashSubNav.querySelectorAll('.sub-tab-btn') : [];
+    _dashSubBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             const target = btn.dataset.subTab;
             // Toggle sub-tab button active state
-            dashboardSubTabBtns.forEach(b => b.classList.remove('active'));
+            _dashSubBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            // Toggle sidebar sub-panes
-            document.querySelectorAll('#tab-dashboard .sub-tab-pane').forEach(pane => {
-                pane.style.display = 'none';
-                pane.classList.remove('active');
-            });
-            const targetPane = document.getElementById(`sub-tab-${target}`);
-            if (targetPane) {
-                targetPane.style.display = 'flex';
-                targetPane.classList.add('active');
+
+            // For surveillance/drafts: show tab-dashboard sidebar pane
+            // For brand-assets/crm-hub: show their own sidebar tab-panes
+            const tabPanesAll = document.querySelectorAll('.tab-pane');
+            if (target === 'surveillance' || target === 'drafts') {
+                // Activate tab-dashboard sidebar
+                tabPanesAll.forEach(p => p.classList.remove('active'));
+                const dashPane = document.getElementById('tab-dashboard');
+                if (dashPane) dashPane.classList.add('active');
+                // Toggle sub-panes inside dashboard
+                document.querySelectorAll('#tab-dashboard .sub-tab-pane').forEach(pane => {
+                    pane.style.display = 'none';
+                    pane.classList.remove('active');
+                });
+                const targetPane = document.getElementById(`sub-tab-${target}`);
+                if (targetPane) {
+                    targetPane.style.display = 'flex';
+                    targetPane.classList.add('active');
+                }
+            } else if (target === 'brand-assets' || target === 'crm-hub') {
+                // Activate the brand-assets or crm-hub sidebar tab-pane
+                tabPanesAll.forEach(p => p.classList.remove('active'));
+                const targetTabPane = document.getElementById(`tab-${target}`);
+                if (targetTabPane) targetTabPane.classList.add('active');
             }
-            // Toggle main content views
-            const survView = document.getElementById('surveillance-view');
-            const dView = document.getElementById('drafts-view');
-            if (target === 'drafts') {
-                if (survView) survView.classList.add('hidden');
-                if (dView) { dView.classList.remove('hidden'); loadDrafts(); }
-            } else {
-                if (dView) dView.classList.add('hidden');
-                if (survView) survView.classList.remove('hidden');
-            }
+
+            // Switch main content view
+            _applyDashboardSubView(target);
         });
+    });
+
+    // Listen for User Profile switch from user dropdown
+    window.addEventListener('switch-to-user-profile', () => {
+        // Hide dashboard sub-nav
+        if (_dashSubNav) _dashSubNav.style.display = 'none';
+        // Activate voice-engine tab-pane in sidebar
+        const tabPanesAll = document.querySelectorAll('.tab-pane');
+        tabPanesAll.forEach(p => p.classList.remove('active'));
+        const vePane = document.getElementById('tab-voice-engine');
+        if (vePane) vePane.classList.add('active');
+        // Remove active from mode dropdown and dashboard btn
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.mode-option').forEach(o => o.classList.remove('active-option'));
+        // Update dropdown label
+        const ddLabel = document.getElementById('mode-dropdown-label');
+        if (ddLabel) {
+            ddLabel.innerHTML = '<i data-lucide="user" style="width:16px;height:16px;color:var(--brand-primary);flex-shrink:0;"></i> User Profile';
+            if (window.lucide) lucide.createIcons();
+        }
+        // Switch main content
+        switchMainView('voice-engine');
     });
 
     // ============================================
@@ -2815,12 +3400,144 @@ document.addEventListener('DOMContentLoaded', () => {
                 completeSimpleProgress('error');
                 console.error(err);
              } finally {
+                if (resultsSection) resultsSection.classList.remove('hidden');
+                if (resultsPanel) resultsPanel.classList.remove('hidden');
                 regenerateCaptionBtn.innerHTML = '<i data-lucide="refresh-cw" class="btn-icon"></i> Regen Text';
                 regenerateCaptionBtn.disabled = false;
                 setOrchestratorStatus(false);
                 setGlobalLoading(false);
                 if (window.lucide) lucide.createIcons();
              }
+        });
+    }
+
+    // ============================================
+    // INLINE COMMENT ANNOTATION SYSTEM
+    // ============================================
+    const captionCommentBox = document.getElementById('caption-comment-box');
+    const captionCommentClose = document.getElementById('caption-comment-close');
+    const captionCommentSelected = document.getElementById('caption-comment-selected');
+    const captionCommentInput = document.getElementById('caption-comment-input');
+    const captionCommentApply = document.getElementById('caption-comment-apply');
+    const captionSelectHint = document.getElementById('caption-select-hint');
+    let _annotationSelectedText = '';
+
+    // Show hint when results are visible
+    function showCaptionSelectHint() {
+        if (captionSelectHint && captionPreview && captionPreview.textContent.trim()) {
+            captionSelectHint.style.display = 'flex';
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    // Listen for text selection inside caption-preview
+    document.addEventListener('mouseup', (e) => {
+        if (!captionPreview || !captionCommentBox) return;
+        const sel = window.getSelection();
+        if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+            return; // No selection
+        }
+        // Only react if selection is inside caption-preview
+        const anchor = sel.anchorNode;
+        const focus = sel.focusNode;
+        if (!captionPreview.contains(anchor) && !captionPreview.contains(focus)) return;
+
+        const selectedText = sel.toString().trim();
+        if (selectedText.length < 3) return; // Ignore tiny selections
+
+        _annotationSelectedText = selectedText;
+
+        // Show the comment box near the selection
+        const previewRect = captionPreview.getBoundingClientRect();
+        const colRect = captionPreview.closest('.caption-col').getBoundingClientRect();
+        const range = sel.getRangeAt(0);
+        const rangeRect = range.getBoundingClientRect();
+
+        // Position: below the selection, left-aligned to caption column
+        const topOffset = rangeRect.bottom - colRect.top + 8;
+        const leftOffset = Math.max(0, Math.min(rangeRect.left - colRect.left, colRect.width - 350));
+
+        captionCommentBox.style.top = topOffset + 'px';
+        captionCommentBox.style.left = leftOffset + 'px';
+        captionCommentBox.classList.remove('hidden');
+
+        // Populate selected text preview (truncate for display)
+        const displayText = selectedText.length > 200 ? selectedText.substring(0, 200) + '...' : selectedText;
+        captionCommentSelected.textContent = displayText;
+        captionCommentInput.value = '';
+        captionCommentInput.focus();
+        if (window.lucide) lucide.createIcons();
+    });
+
+    // Close comment box
+    function closeCaptionCommentBox() {
+        if (captionCommentBox) captionCommentBox.classList.add('hidden');
+        _annotationSelectedText = '';
+    }
+    if (captionCommentClose) captionCommentClose.addEventListener('click', closeCaptionCommentBox);
+
+    // Close on click outside
+    document.addEventListener('mousedown', (e) => {
+        if (captionCommentBox && !captionCommentBox.classList.contains('hidden') && !captionCommentBox.contains(e.target)) {
+            closeCaptionCommentBox();
+        }
+    });
+
+    // Apply with AI
+    if (captionCommentApply) {
+        captionCommentApply.addEventListener('click', async () => {
+            if (!_annotationSelectedText || !currentResult) return;
+            const comment = captionCommentInput.value.trim();
+            if (!comment) { captionCommentInput.focus(); return; }
+
+            // CRITICAL: Capture selected text BEFORE closeCaptionCommentBox() clears it
+            const selectedText = _annotationSelectedText;
+            const fullCaption = currentResult.caption || captionPreview.textContent;
+            closeCaptionCommentBox();
+
+            // Show loading state on caption
+            captionPreview.style.opacity = '0.4';
+            regenerateCaptionBtn.innerHTML = 'Refining...';
+            regenerateCaptionBtn.disabled = true;
+            setGlobalLoading(true);
+
+            try {
+                const formData = new FormData(form);
+                const fdata = Object.fromEntries(formData.entries());
+
+                const response = await fetch('/api/edit-caption', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        full_caption: fullCaption,
+                        selected_text: selectedText,
+                        comment: comment,
+                        topic: fdata.topic || currentResult.topic || 'General',
+                        purpose: fdata.purpose || currentResult.purpose || 'educational',
+                        user_id: window.appUserId || null
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.caption) {
+                    currentResult.caption = result.caption;
+                    captionPreview.textContent = result.caption;
+                    addSystemLog('Caption section refined via inline comment.', 'success');
+                } else {
+                    console.error('Edit caption error:', result.error);
+                    addSystemLog(`Inline edit failed: ${result.error || 'Unknown'}`, 'error');
+                }
+            } catch (err) {
+                console.error('Edit caption fetch error:', err);
+                addSystemLog(`Inline edit network error: ${err.message}`, 'error');
+            } finally {
+                captionPreview.style.opacity = '1';
+                regenerateCaptionBtn.innerHTML = '<i data-lucide="refresh-cw" class="btn-icon"></i> Regen Text';
+                regenerateCaptionBtn.disabled = false;
+                setGlobalLoading(false);
+                if (window.lucide) lucide.createIcons();
+            }
         });
     }
 
@@ -2831,7 +3548,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelRegenImageBtn = document.getElementById('cancel-regen-image-btn'); // For Refine tab
     const confirmRegenImageBtn = document.getElementById('confirm-regen-image-btn'); // For Refine tab
     const regenImageInstructions = document.getElementById('regen-image-instructions');
-    const regenVisualStyle = document.getElementById('regen-visual-style');
 
     // New Tabs support
     const regenTabBtns = document.querySelectorAll('[data-regen-tab]');
@@ -2882,22 +3598,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tweakAspectRatio && currentResult.aspect_ratio) {
             tweakAspectRatio.value = currentResult.aspect_ratio;
         }
-        const refineAspectRatio = document.getElementById('regen-refine-aspect-ratio');
-        if (refineAspectRatio && currentResult.aspect_ratio) {
-            refineAspectRatio.value = currentResult.aspect_ratio;
-        }
-
         // Set Preview Image (for Refine tab)
         const mainPreviewImg = document.getElementById('preview-image');
         const modalPreviewImg = document.getElementById('regen-source-preview');
-        if (mainPreviewImg && modalPreviewImg) {
-            modalPreviewImg.src = mainPreviewImg.src;
+        if (modalPreviewImg) {
+            // Try main preview img src first, fall back to currentResult.asset_url
+            const imgUrl = (mainPreviewImg && mainPreviewImg.src) ? mainPreviewImg.src : currentResult.asset_url;
+            let _modalImgRetried = false;
+            modalPreviewImg.onerror = function() {
+                if (!_modalImgRetried) {
+                    _modalImgRetried = true;
+                    // Retry with raw URL (no cache buster)
+                    modalPreviewImg.src = currentResult.asset_url;
+                    return;
+                }
+                console.warn('[Refine] Source image failed to load:', currentResult.asset_url);
+                modalPreviewImg.alt = 'Source image unavailable — image may have expired. Use Tweak Prompt tab instead.';
+            };
+            modalPreviewImg.src = imgUrl;
         }
 
-        // Set style to current result's style or default
-        if (currentResult.visual_style) {
-            regenVisualStyle.value = currentResult.visual_style;
-        }
+        // Reset HQ toggle
+        const hqToggle = document.getElementById('regen-refine-hq-toggle');
+        if (hqToggle) hqToggle.checked = false;
+
         regenImageModal.classList.remove('hidden');
     }
 
@@ -2973,7 +3697,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     completeSimpleProgress('image');
                     currentResult.asset_url = result.asset_url;
-                    currentResult.final_image_prompt = newPrompt; 
+                    currentResult.final_image_prompt = newPrompt;
+                    // Update captured URL so next refine uses the NEW image
+                    regenOriginalAssetUrl = result.asset_url;
+                    console.log('[Tweak] Updated asset_url:', result.asset_url);
                     showResults(currentResult);
                 } else {
                     completeSimpleProgress('error');
@@ -2986,6 +3713,8 @@ document.addEventListener('DOMContentLoaded', () => {
                  console.error(err);
                  alert('Error in script: ' + err.message);
              } finally {
+                 if (resultsSection) resultsSection.classList.remove('hidden');
+                 if (resultsPanel) resultsPanel.classList.remove('hidden');
                  regenerateImageBtn.innerHTML = '<i data-lucide="image" class="btn-icon"></i> Regen Image';
                  regenerateImageBtn.disabled = false;
                  setGlobalLoading(false);
@@ -3009,25 +3738,18 @@ document.addEventListener('DOMContentLoaded', () => {
             setGlobalLoading(true);
             setOrchestratorStatus(true);
 
-            // Capture inputs from modal
+            // Capture inputs from modal — Refine only needs instructions + source image
             const instructions = regenImageInstructions.value;
-            const style = regenVisualStyle.value;
-            const aspectRatioEl = document.getElementById('regen-refine-aspect-ratio');
-            const aspectRatio = aspectRatioEl ? aspectRatioEl.value : (currentResult.aspect_ratio || "16:9");
+            const hqToggle = document.getElementById('regen-refine-hq-toggle');
+            const highQuality = hqToggle ? hqToggle.checked : false;
 
-            const refineColorPaletteEl = document.getElementById('regen-refine-color-palette');
             const payload = {
                 user_id: window.appUserId || null,
-                mode: 'refine', // Explicit mode
-                caption: currentResult.caption,
-                topic: currentResult.topic, // Add topic
-                purpose: currentResult.purpose, // Add purpose
-                type: currentResult.type, // Add type
-                style: style,
-                aspect_ratio: aspectRatio,
-                color_palette: refineColorPaletteEl ? refineColorPaletteEl.value : 'brand',
+                mode: 'refine',
                 instructions: instructions,
                 source_image: regenOriginalAssetUrl || currentResult.asset_url,
+                caption: currentResult.caption,
+                high_quality: highQuality,
                 history_entry: {
                     ...currentResult,
                     id: crypto.randomUUID(),
@@ -3051,10 +3773,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (response.ok && result.asset_url) {
                     completeSimpleProgress('image');
-                    // Update current result
+                    // Update current result with persisted URL from server
                     currentResult.asset_url = result.asset_url;
                     currentResult.final_image_prompt = result.final_image_prompt;
-                    currentResult.visual_style = style; // Update style if changed
+                    // Update the captured URL so next refine uses the NEW image
+                    regenOriginalAssetUrl = result.asset_url;
+                    console.log('[Refine] Updated asset_url:', result.asset_url);
 
                     // Update image
                     if (img) {
@@ -3079,6 +3803,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (img) img.style.opacity = '1';
                 alert("Network error during regeneration.");
             } finally {
+                if (resultsSection) resultsSection.classList.remove('hidden');
+                if (resultsPanel) resultsPanel.classList.remove('hidden');
                 regenerateImageBtn.innerHTML = '<i data-lucide="image" class="btn-icon"></i> Regen Image';
                 regenerateImageBtn.disabled = false;
                 setOrchestratorStatus(false);
@@ -3116,6 +3842,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewHistoryBtn = document.getElementById('view-history-btn');
     const closeHistoryBtn = document.getElementById('close-history-btn');
     const historyView = document.getElementById('history-view');
+    let _historyOpenTimer = null;
+    let _historyCloseTimer = null;
     
     // Clicking backdrop closes modal
     if (historyModalBackdrop) {
@@ -3131,20 +3859,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function openHistoryModal() {
         if (!historyView) return;
+
+        if (_historyCloseTimer) {
+            clearTimeout(_historyCloseTimer);
+            _historyCloseTimer = null;
+        }
+        if (_historyOpenTimer) {
+            clearTimeout(_historyOpenTimer);
+            _historyOpenTimer = null;
+        }
+
+        document.body.classList.add('history-modal-open');
         
         // Ensure Backdrop is visible
         if (historyModalBackdrop) {
             historyModalBackdrop.classList.remove('hidden');
             historyModalBackdrop.setAttribute('aria-hidden', 'false');
-            setTimeout(() => historyModalBackdrop.classList.add('visible'), 10);
+            historyModalBackdrop.classList.add('visible');
         }
         
         // Show Modal
         historyView.classList.remove('hidden');
         historyView.setAttribute('aria-hidden', 'false');
-        setTimeout(() => {
+        _historyOpenTimer = setTimeout(() => {
             historyView.classList.add('visible');
             historyView.focus();
+            _historyOpenTimer = null;
         }, 10);
         
         loadHistory();
@@ -3152,6 +3892,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeHistoryModal() {
         if (!historyView) return;
+
+        if (_historyOpenTimer) {
+            clearTimeout(_historyOpenTimer);
+            _historyOpenTimer = null;
+        }
+        if (_historyCloseTimer) {
+            clearTimeout(_historyCloseTimer);
+            _historyCloseTimer = null;
+        }
         
         historyView.classList.remove('visible');
         historyView.setAttribute('aria-hidden', 'true');
@@ -3162,9 +3911,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Wait for CSS transition logic before hiding element display
-        setTimeout(() => {
+        _historyCloseTimer = setTimeout(() => {
             historyView.classList.add('hidden');
             if (historyModalBackdrop) historyModalBackdrop.classList.add('hidden');
+            document.body.classList.remove('history-modal-open');
+            if (viewHistoryBtn) viewHistoryBtn.focus();
+            _historyCloseTimer = null;
         }, 300);
     }
 
@@ -3236,8 +3988,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                 });
 
+                const topicDisplay = entry.input_summary || entry.topic || 'Untitled';
                 tr.innerHTML = `
-                    <td title="${entry.topic}" style="padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; font-weight: 500; color: var(--text-primary); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${entry.topic}</td>
+                    <td title="${window.sanitizeStr(topicDisplay)}" style="padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.9rem; font-weight: 500; color: var(--text-primary); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${window.sanitizeStr(topicDisplay)}</td>
                     <td style="padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.85rem; color: var(--text-secondary); text-transform: capitalize;">${entry.type || 'Text'}</td>
                     <td style="padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.85rem; color: var(--text-secondary); text-transform: capitalize;">${entry.purpose || 'N/A'}</td>
                     <td style="padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.85rem; color: var(--text-tertiary);">${dateText}</td>
@@ -3248,9 +4001,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
 
                 tr.style.cursor = 'pointer';
-                tr.style.transition = 'background-color 0.2s ease';
-                tr.addEventListener('mouseenter', () => tr.style.backgroundColor = 'rgba(255, 255, 255, 0.03)');
-                tr.addEventListener('mouseleave', () => tr.style.backgroundColor = 'transparent');
+                tr.classList.add('history-row');
 
                 tr.addEventListener('click', () => {
                     if (['viral_research', 'competitor_research', 'youtube_research'].includes(entry.type)) {
@@ -3261,7 +4012,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
                         renderResearchInConsole(typeMap[entry.type], entry.full_results || []);
                     } else {
-                        showResults(entry, entry);
+                        // Merge full_results back into entry so lead_magnets etc. are available
+                        const merged = { ...entry };
+                        if (entry.full_results && typeof entry.full_results === 'object' && !Array.isArray(entry.full_results)) {
+                            Object.keys(entry.full_results).forEach(k => {
+                                if (merged[k] === undefined || merged[k] === null || merged[k] === '') {
+                                    merged[k] = entry.full_results[k];
+                                }
+                            });
+                            // Always prefer full_results for lead_magnets (may be missing from top-level)
+                            if (entry.full_results.lead_magnets) merged.lead_magnets = entry.full_results.lead_magnets;
+                        }
+                        showResults(merged, merged);
                     }
                     closeHistoryModal();
                 });
@@ -3389,7 +4151,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const bestPost = data.posts.find(p => p.title === summary.best_post_title) || data.posts[0];
                 topPerformerEl.addEventListener('mouseenter', () => {
                     topPerformerEl.style.transform = 'translateY(-2px)';
-                    topPerformerEl.style.backgroundColor = 'rgba(249, 199, 79, 0.05)';
+                    topPerformerEl.style.backgroundColor = 'rgba(var(--brand-primary-rgb), 0.05)';
                 });
                 topPerformerEl.addEventListener('mouseleave', () => {
                     topPerformerEl.style.transform = 'translateY(0)';
@@ -3521,9 +4283,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             let frontBorderHover = 'var(--border-hover)';
                             
                             if (item.tier === 'A') {
-                                frontBg = 'linear-gradient(to bottom right, rgba(249, 199, 79, 0.08), var(--bg-main))';
-                                frontBorder = 'rgba(249, 199, 79, 0.15)';
-                                frontBorderHover = 'rgba(249, 199, 79, 0.4)';
+                                frontBg = 'linear-gradient(to bottom right, rgba(var(--brand-primary-rgb), 0.08), var(--bg-main))';
+                                frontBorder = 'rgba(var(--brand-primary-rgb), 0.15)';
+                                frontBorderHover = 'rgba(var(--brand-primary-rgb), 0.4)';
                             } else if (item.tier === 'B') {
                                 frontBg = 'linear-gradient(to bottom right, rgba(96, 165, 250, 0.06), var(--bg-main))';
                                 frontBorder = 'rgba(96, 165, 250, 0.15)';
@@ -3545,6 +4307,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             const thumbSrc = item.preview_image_url || item.video_thumbnail || (parsedImgUrls.length ? parsedImgUrls[0] : (item.carousel_preview_url || ''));
                             const postType = item.type || 'text';
                             const typeIcon = { poll: 'bar-chart-2', carousel: 'layers', image: 'image', video: 'video', text: 'file-text' }[postType] || 'file-text';
+                            const safeTitle = window.sanitizeStr(item.title || 'LinkedIn Post');
                             
                             const showFallback = "this.style.display='none';var n=this.nextElementSibling;if(n)n.classList.remove('hidden');";
                             const thumbHtml = thumbSrc
@@ -3557,7 +4320,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                    </div>`;
 
                             const fullText = item.text || "";
-                            const textPreview = fullText.length > 130 ? fullText.substring(0, 130).trim() + '…' : fullText;
+                            const textPreview = window.sanitizeStr(fullText.length > 130 ? fullText.substring(0, 130).trim() + '…' : fullText);
                             
                             let dateStr = item.time_since_posted || '';
                             if (item.posted_at) {
@@ -3581,12 +4344,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
                                                     ${authorAvatar}
                                                     <div style="display:flex; flex-direction:column; line-height:1.2;">
-                                                        <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${item.author_name || 'Anonymous'}</span>
+                                                        <span style="font-size:0.85rem; font-weight:600; color:var(--text-primary);">${window.sanitizeStr(item.author_name || 'Anonymous')}</span>
                                                         <span style="font-size:0.75rem; color:var(--text-tertiary);">${dateStr}</span>
                                                     </div>
                                                 </div>
 
-                                                <h3 class="yt-title" style="text-wrap: balance; font-size: 1.05rem; line-height: 1.4; margin:0;">${item.title || 'LinkedIn Post'}</h3>
+                                                <h3 class="yt-title" style="text-wrap: balance; font-size: 1.05rem; line-height: 1.4; margin:0;">${window.sanitizeStr(item.title || 'LinkedIn Post')}</h3>
                                                 <div class="yt-meta" style="margin-top: 6px; font-variant-numeric: tabular-nums;">
                                                     <span><i data-lucide="thumbs-up" style="width:12px;height:12px;margin-right:2px;display:inline-block;vertical-align:middle;"></i>${item.engagement_score || 0}</span>
                                                     <span class="yt-meta-dot" aria-hidden="true">·</span>
@@ -3598,7 +4361,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         <div class="yt-actions" style="margin-top: 16px; padding: 0;">
                                             <button class="yt-action-btn expand-surv-btn" aria-label="Expand post details"><i data-lucide="maximize-2"></i> Expand</button>
                                             ${item.url ? `<a href="${item.url}" target="_blank" class="yt-action-btn" aria-label="Open original post in new tab"><i data-lucide="external-link"></i> Link</a>` : ''}
-                                            <button class="yt-action-btn repurpose-surv-btn" style="color: var(--accent); border-color: rgba(249, 199, 79, 0.3);" aria-label="Repurpose this post"><i data-lucide="zap"></i> Repurpose</button>
+                                            <button class="yt-action-btn repurpose-surv-btn" style="color: var(--accent); border-color: rgba(var(--brand-primary-rgb), 0.3);" aria-label="Repurpose this post"><i data-lucide="zap"></i> Repurpose</button>
                                         </div>
                                     </div>
                                     <div class="surv-card-back" aria-hidden="true">
@@ -3856,7 +4619,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                                                 const hasComment = (lead.interaction_type === 'comment' || lead.interaction_type === 'reaction+comment') && lead.text && lead.text.trim().length > 0;
                                                 const commentHtml = hasComment
-                                                    ? `<div class="crm-comment-preview" title="${lead.text.replace(/"/g, '&quot;')}">${lead.text}</div>`
+                                                    ? `<div class="crm-comment-preview" title="${window.sanitizeStr(lead.text).replace(/"/g, '&quot;')}">${window.sanitizeStr(lead.text)}</div>`
                                                     : `<span class="crm-no-comment">No comment</span>`;
 
                                                 return `
@@ -3869,8 +4632,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                                         <td>
                                                             <div class="crm-lead-identity">
                                                                 <div class="crm-lead-info">
-                                                                    ${lead.profile_url ? `<a href="${lead.profile_url}" target="_blank" class="crm-lead-name">${lead.name}</a>` : `<span class="crm-lead-name">${lead.name}</span>`}
-                                                                    <span class="crm-lead-headline" title="${lead.headline || ''}">${lead.headline || 'LinkedIn Member'}</span>
+                                                                    ${lead.profile_url ? `<a href="${lead.profile_url}" target="_blank" class="crm-lead-name">${window.sanitizeStr(lead.name)}</a>` : `<span class="crm-lead-name">${window.sanitizeStr(lead.name)}</span>`}
+                                                                    <span class="crm-lead-headline" title="${window.sanitizeStr(lead.headline || '')}">${window.sanitizeStr(lead.headline || 'LinkedIn Member')}</span>
                                                                 </div>
                                                             </div>
                                                         </td>

@@ -1,0 +1,71 @@
+# Secrets & credentials — NEVER deploy
+.env
+.env.*
+gsheet_credentials.json
+token.json
+firebase-service-account.json
+linkedin_tokens.json
+linkedin_cookies.txt
+credentials.json
+.local_settings.json
+.local_profiles.json
+.local_brands.json
+app.db
+data.zip
+
+# Temporary & generated data
+.tmp/
+history.json
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE & OS
+.vscode/
+.trae/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Git internals
+.git/
+
+# Test artifacts
+tests/
+testsprite_tests/
+.testsprite/
+.pytest_cache/
+
+# Docs not needed at runtime
+docs/
+*.md
+ARCHITECTURE.md
+CHANGELOG.md
+TROUBLESHOOTING.md
+IMPLEMENTATION.md
+SECURITY_AUDIT_REPORT.md
+AUDIT_REPORT.md
+AUDIT_REPORT_NEW.md
+CODEBASE_AUDIT.md
+GEMINI.md
+SUPABASE_MIGRATION_GUIDE.md
+SUPABASE_SETUP.md
+Trae.md
+task.md
+
+# Firebase (not used on Modal)
+firebase.json
+firestore.indexes.json
+firestore.rules
+.firebaserc
+
+# Netlify (not used on Modal)
+netlify.toml
+
+# Utility scripts not needed in production
+sanitize_script.py
+
+# Backup files
+*.backup

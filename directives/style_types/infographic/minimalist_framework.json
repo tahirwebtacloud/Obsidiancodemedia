@@ -7,7 +7,7 @@
       "prompt": "A professional vector infographic template featuring a triangular 3-step cycle layout on a light gray background. Central white circular hub with text {{TEXT_PLACEHOLDER_TITLE}}. Three rounded triangular petals connected to the center: Left petal is vibrant red containing number '01', a hand holding a coin icon, and {{TEXT_PLACEHOLDER_BODY_1}}. Top petal is deep teal containing number '02', a handshake icon, and {{TEXT_PLACEHOLDER_BODY_2}}. Right petal is white containing number '03', a figure climbing stairs icon, and {{TEXT_PLACEHOLDER_BODY_3}}. Flat design style with subtle drop shadows creating a paper-cut 3D effect. Clean sans-serif typography, corporate business aesthetic, high contrast.",
       "layout": "Radial composition with a central hub and three radiating triangular segments. Uses a rotational symmetry grid.",
       "visual_hierarchy": "1. Central Title (Hub) -> 2. Colored Segments (Red/Teal) -> 3. Number Indicators (01, 02, 03) -> 4. Icons -> 5. Body Text.",
-      "focal_point": "The central white circle containing 'INFOGRAPHIC BACKGROUND' due to its central placement and white space contrast against the colored petals.",
+      "focal_point": "The central white hub circle due to its central placement and white space contrast against the colored petals.",
       "white_space": "Effective use of negative space within the petals to prevent clutter. The surrounding background provides breathing room for the main shape.",
       "balance": "Asymmetrical color balance (two dark/saturated sections vs. one light section) but geometrically symmetrical. The visual weight is slightly heavier on the left side due to the red and teal sections."
     },
@@ -26,9 +26,9 @@
       "best_for": "Comprehensive 10+ point overviews, detailed breakdowns with a central theme, multi-element frameworks, toolkit displays",
       "prompt": "Professional minimalist infographic template on a clean white background, isometric-adjacent flat vector style with soft drop shadows. Central focal point is a large raised white circular hub containing bold sans-serif text {{TEXT_PLACEHOLDER_1}} and a cyan segmented progress bar. The central hub is surrounded by subtle grey technical rings, circuit lines, and faint gear icons. Flanking the center are two vertical columns of 6 rounded rectangular cards (12 total), connected to the center by thin grey lines. Each card features a unique thin-line business icon (brain, chart, user, money bag, etc.), a small header {{TEXT_PLACEHOLDER_2}}, and a block of small grey placeholder body text. Color palette is white, light grey, dark grey, and vibrant cyan accents. High-quality corporate presentation design, 8k resolution, clean UI/UX aesthetic.",
       "layout": "Symmetrical, centralized radial layout combined with a two-column list structure. The design uses a clear grid system where the central hub anchors the composition, and connected nodes branch out equally to the left and right.",
-      "visual_hierarchy": "1. The central circular hub ('INFOGRAPHICS ELEMENTS') commands immediate attention due to size and central placement. 2. The cyan progress bar and accents guide the eye. 3. The viewer's gaze then disperses to the individual information cards, likely scanning from top-left to bottom-right.",
-      "focal_point": "The center white circle with the title text and cyan loading bar.",
-      "white_space": "Generous use of negative space (white/light grey background) separates the distinct modules, preventing clutter despite the high density of information (12 points).",
+      "visual_hierarchy": "1. The central circular hub (largest element, commands immediate attention). 2. The cyan progress bar and accents guide the eye outward. 3. The viewer's gaze disperses to the individual information cards, scanning left to right.",
+      "focal_point": "The large central circular hub due to its central placement, size, and cyan progress bar accent.",
+      "white_space": "Effective use of negative space within the cards and between the hub and outer columns to prevent clutter. The surrounding background provides breathing room.",
       "balance": "Perfectly symmetrical horizontal balance. The visual weight is evenly distributed between the left and right columns, anchored by the heavy central element."
     }
   ]

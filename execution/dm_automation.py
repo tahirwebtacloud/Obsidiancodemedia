@@ -25,16 +25,34 @@ def draft_dm(target_name, context):
     output_path = ".tmp/dm_drafts.json"
     os.makedirs(".tmp", exist_ok=True)
     
-    # Append to log
-    drafts = []
-    if os.path.exists(output_path):
-        with open(output_path, "r") as f:
-            drafts = json.load(f)
-    
-    drafts.append(result)
-    
-    with open(output_path, "w") as f:
-        json.dump(drafts, f, indent=4)
+    try:
+        from execution.file_locker import FileLock
+    except ImportError:
+        try:
+            from file_locker import FileLock
+        except ImportError:
+            FileLock = None
+
+    def _do_append():
+        drafts = []
+        if os.path.exists(output_path):
+            with open(output_path, "r") as f:
+                drafts = json.load(f)
+        
+        drafts.append(result)
+        
+        with open(output_path, "w") as f:
+            json.dump(drafts, f, indent=4)
+
+    if FileLock:
+        try:
+            with FileLock(output_path):
+                _do_append()
+        except Exception as e:
+            print(f"[DM] Lock error: {e}")
+            _do_append()
+    else:
+        _do_append()
     
     print(f"DM draft saved to {output_path}")
 

@@ -8,9 +8,9 @@
 | 2 | The Visual Overhaul | Complete    | 2026-03-23 | 3 |
 | 3 | The Evolution Engine | Build the Chrome Extension scraper, fuzzy-match data loop, and deterministic math Python script to safely update the User Playbooks. | EVO-01, EVO-02, EVO-03, EVO-04, EVO-05 | 4 |
 
-### Phase Details
+## Phase Details
 
-**Phase 1: The Security DMZ**
+### Phase 1: The Security DMZ
 Goal: Establish the Next.js App Router foundation, locking down all API inputs via Zod and migrating Supabase Auth to secure HTTP-only cookies.
 Requirements: SEC-01, SEC-02, SEC-03, SEC-04, SEC-05
 **Plans:** 3 plans
@@ -24,7 +24,7 @@ Success criteria:
 3. Hitting the generation API with a malformed payload is rejected by Zod before hitting Python.
 4. Python `AUTH_BYPASS` is totally removed.
 
-**Phase 2: The Visual Overhaul**
+### Phase 2: The Visual Overhaul
 Goal: Rebuild the Studio, Intelligence, and Identity tabs using Progressive Disclosure, React Suspense, and Shadcn components.
 Requirements: UI-01, UI-02, UI-03, UI-04, UI-05
 Success criteria:
@@ -32,7 +32,7 @@ Success criteria:
 2. Generating a post shows a shimmering skeleton instantly instead of freezing the page.
 3. Brand Identity is successfully centralized in one tab without data loss.
 
-**Phase 3: The Evolution Engine**
+### Phase 3: The Evolution Engine
 Goal: Build the Chrome Extension scraper, fuzzy-match data loop, and deterministic math Python script to safely update the User Playbooks.
 Requirements: EVO-01, EVO-02, EVO-03, EVO-04, EVO-05
 Success criteria:

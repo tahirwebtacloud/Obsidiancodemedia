@@ -35,8 +35,32 @@ class CostTracker:
             except Exception:
                 pass
 
-    def _save(self):
+    def _update_cost(self, new_item):
+        try:
+            from execution.file_locker import FileLock
+        except ImportError:
+            try:
+                from file_locker import FileLock
+            except ImportError:
+                FileLock = None
+                
         os.makedirs(".tmp", exist_ok=True)
+        if FileLock:
+            try:
+                with FileLock(self.filename):
+                    self._load()
+                    self.costs.append(new_item)
+                    self._save_raw()
+            except Exception as e:
+                print(f"[CostTracker] Lock error: {e}")
+                self.costs.append(new_item)
+                self._save_raw()
+        else:
+            self._load()
+            self.costs.append(new_item)
+            self._save_raw()
+
+    def _save_raw(self):
         data = {
             "costs": self.costs,
             "start_time": self.start_time,
@@ -46,46 +70,47 @@ class CostTracker:
         with open(self.filename, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2)
 
+    def _save(self):
+        # Kept for backward compatibility if called manually
+        if hasattr(self, '_save_raw'):
+            self._save_raw()
+
     def add_gemini_cost(self, operation: str, input_tokens: int, output_tokens: int, model: str = "Gemini"):
         cost = calculate_gemini_cost(input_tokens, output_tokens)
-        self.costs.append({
+        self._update_cost({
             "service": model,
             "operation": operation,
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "cost": cost
         })
-        self._save()
         
     def add_image_cost(self, operation: str = "Generate Image", model: str = "Imagen 3"):
-        self.costs.append({
+        self._update_cost({
             "service": model,
             "operation": operation,
             "input_tokens": 0,
             "output_tokens": 0,
             "cost": PRICING["imagen_per_image"]
         })
-        self._save()
         
     def add_apify_page_cost(self, pages: int = 1, operation: str = "Web Scrape"):
-        self.costs.append({
+        self._update_cost({
             "service": "Apify",
             "operation": operation,
             "input_tokens": 0,
             "output_tokens": 0,
             "cost": PRICING["apify_per_page"] * pages
         })
-        self._save()
 
     def add_apify_yt_video_cost(self, videos: int = 1, operation: str = "YouTube Scrape"):
-        self.costs.append({
+        self._update_cost({
             "service": "Apify",
             "operation": operation,
             "input_tokens": 0,
             "output_tokens": 0,
             "cost": PRICING["apify_per_yt_video"] * videos
         })
-        self._save()
 
     def get_total_cost(self) -> float:
         return sum(item["cost"] for item in self.costs)

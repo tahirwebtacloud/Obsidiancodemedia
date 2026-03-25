@@ -11,7 +11,7 @@ from cost_tracker import CostTracker
 
 def call_llm(system_prompt, user_content):
     api_key = os.getenv("GOOGLE_GEMINI_API_KEY")
-    model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3-pro-preview")
+    model_name = os.getenv("GEMINI_TEXT_MODEL", "gemini-3.1-pro-preview")
     try:
         client = genai.Client(api_key=api_key)
         response = client.models.generate_content(

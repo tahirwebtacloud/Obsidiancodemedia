@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "get api health returns service health status",
+    "description": "Verify that GET /api/health returns a 200 status with a JSON body containing the overall service status and integration probe statuses without requiring authentication."
+  },
+  {
+    "id": "TC002",
+    "title": "get api health models returns model configuration diagnostics",
+    "description": "Verify that GET /api/health/models returns a 200 status with a JSON body containing the effective text and image model configurations and environment flags without requiring authentication."
+  },
+  {
+    "id": "TC003",
+    "title": "post api generate triggers synchronous content generation",
+    "description": "Verify that POST /api/generate with a valid GenerateRequest and valid Authorization header returns a 200 status with a JSON payload containing generated caption, single_point, image_prompt, and asset_url."
+  },
+  {
+    "id": "TC004",
+    "title": "post api generate stream streams generation progress via sse",
+    "description": "Verify that POST /api/generate-stream with a valid GenerateRequest and valid Authorization header returns a 200 status with text/event-stream content type and streams SSE events indicating stages of generation and final result."
+  },
+  {
+    "id": "TC005",
+    "title": "post api regenerate caption regenerates caption text",
+    "description": "Verify that POST /api/regenerate-caption with a valid RegenerateCaptionRequest and valid Authorization header returns a 200 status with a JSON body containing the regenerated caption text."
+  },
+  {
+    "id": "TC006",
+    "title": "post api regenerate image regenerates image prompt and asset",
+    "description": "Verify that POST /api/regenerate-image with a valid RegenerateImageRequest and valid Authorization header returns a 200 status with a JSON body containing the regenerated image URL and prompt."
+  },
+  {
+    "id": "TC007",
+    "title": "post api drafts creates and saves a new draft",
+    "description": "Verify that POST /api/drafts with a valid DraftSaveRequest and valid Authorization header returns a 200 status with a message confirming save and the draft object including id, title, and status."
+  },
+  {
+    "id": "TC008",
+    "title": "get api drafts lists drafts for authenticated user",
+    "description": "Verify that GET /api/drafts with valid Authorization header returns a 200 status with a JSON body containing a list of drafts belonging to the authenticated user."
+  },
+  {
+    "id": "TC009",
+    "title": "post api research viral runs viral content research workflow",
+    "description": "Verify that POST /api/research/viral with a valid ResearchRequest and valid Authorization header returns a 200 status with a JSON body containing ranked viral posts, metadata, and parsed hooks."
+  },
+  {
+    "id": "TC010",
+    "title": "get api settings reads per user settings",
+    "description": "Verify that GET /api/settings with valid Authorization header returns a 200 status with a JSON body containing the authenticated user's settings object including professional_bio, writing_style_rules, brand_id, and publishing_config."
+  }
+]

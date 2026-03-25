@@ -1,0 +1,475 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+/* ─── Login Page Variables ─── */
+#login-overlay {
+    --login-bg: #0E0E0E;
+    --login-surface: #141414;
+    --login-surface-alt: #1a1a1a;
+    --login-yellow: #F9C74F;
+    --login-yellow-dark: #D4A030;
+    --login-yellow-glow: rgba(249, 199, 79, 0.15);
+    --login-text: #f0f0f0;
+    --login-text-secondary: #999;
+    --login-text-muted: #666;
+    --login-border: rgba(255, 255, 255, 0.08);
+    --login-gradient: linear-gradient(135deg, #F9C74F 0%, #D4A030 50%, #B8860B 100%);
+    --login-glass-bg: rgba(20, 20, 20, 0.85);
+    --login-glass-border: 1px solid rgba(255, 255, 255, 0.08);
+    --login-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* ─── Login Overlay Reset ─── */
+#login-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    overflow: hidden;
+    background: var(--login-bg);
+}
+
+#login-overlay *,
+#login-overlay *::before,
+#login-overlay *::after {
+    box-sizing: border-box;
+}
+
+/* ─── Typography ─── */
+#login-overlay h1 {
+    font-weight: 700;
+    margin: 0;
+    color: var(--login-text);
+    font-size: 1.8rem;
+    letter-spacing: -0.02em;
+}
+
+#login-overlay h1.yellow-text {
+    color: var(--login-yellow);
+}
+
+#login-overlay p.overlay-desc {
+    font-size: 14px;
+    font-weight: 300;
+    line-height: 22px;
+    letter-spacing: 0.5px;
+    margin: 20px 0 30px;
+    color: rgba(14, 14, 14, 0.7);
+}
+
+#login-overlay span.form-hint {
+    font-size: 12px;
+    color: var(--login-text-muted);
+    margin-bottom: 10px;
+}
+
+#login-overlay a.form-link {
+    color: var(--login-text-secondary);
+    font-size: 14px;
+    text-decoration: none;
+    margin: 15px 0;
+    transition: color 0.3s;
+}
+
+#login-overlay a.form-link:hover {
+    color: var(--login-yellow);
+}
+
+/* ─── Buttons ─── */
+#login-overlay .login-btn {
+    border-radius: 50px;
+    border: none;
+    background: var(--login-gradient);
+    color: #0E0E0E;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 14px 45px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: transform 80ms ease-in, box-shadow 0.3s;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(249, 199, 79, 0.25);
+    font-family: 'Poppins', sans-serif;
+}
+
+#login-overlay .login-btn:hover {
+    box-shadow: 0 6px 30px rgba(249, 199, 79, 0.4);
+}
+
+#login-overlay .login-btn:active {
+    transform: scale(0.95);
+}
+
+#login-overlay .login-btn:focus {
+    outline: none;
+}
+
+#login-overlay .login-btn.ghost {
+    background: transparent;
+    border: 2px solid #0E0E0E;
+    color: #0E0E0E;
+    box-shadow: none;
+}
+
+#login-overlay .login-btn.ghost:hover {
+    background: rgba(14, 14, 14, 0.1);
+    box-shadow: none;
+}
+
+/* ─── Google Sign-In Button ─── */
+#login-overlay .google-signin-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border-radius: 50px;
+    border: 1px solid var(--login-border);
+    background: var(--login-surface-alt);
+    color: var(--login-text);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 14px 32px;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-family: 'Poppins', sans-serif;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 280px;
+}
+
+#login-overlay .google-signin-btn:hover {
+    background: #222;
+    border-color: rgba(249, 199, 79, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+}
+
+#login-overlay .google-signin-btn:active {
+    transform: scale(0.98) translateY(0);
+}
+
+#login-overlay .google-signin-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#login-overlay .google-signin-btn svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+/* ─── Form Styling ─── */
+#login-overlay .login-form {
+    background: var(--login-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 0 50px;
+    height: 100%;
+    text-align: center;
+}
+
+/* ─── Inputs ─── */
+#login-overlay .login-input {
+    background-color: transparent;
+    border: none;
+    border-bottom: 2px solid var(--login-border);
+    padding: 12px 15px;
+    margin: 8px 0;
+    width: 100%;
+    font-family: 'Poppins', sans-serif;
+    transition: border-color 0.3s;
+    color: var(--login-text);
+    font-size: 14px;
+}
+
+#login-overlay .login-input:focus {
+    outline: none;
+    border-bottom-color: var(--login-yellow);
+}
+
+#login-overlay .login-input::placeholder {
+    color: var(--login-text-muted);
+}
+
+/* ─── Main Container ─── */
+#login-overlay .login-container {
+    background: var(--login-glass-bg);
+    box-shadow: var(--login-glass-shadow);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: var(--login-glass-border);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    width: 850px;
+    max-width: 95%;
+    min-height: 550px;
+    z-index: 10;
+}
+
+/* ─── Form Container ─── */
+#login-overlay .login-form-container {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    transition: all 0.6s ease-in-out;
+}
+
+#login-overlay .login-sign-in-container {
+    left: 0;
+    width: 50%;
+    z-index: 2;
+}
+
+#login-overlay .login-container.right-panel-active .login-sign-in-container {
+    transform: translateX(100%);
+}
+
+#login-overlay .login-sign-up-container {
+    left: 0;
+    width: 50%;
+    opacity: 0;
+    z-index: 1;
+}
+
+#login-overlay .login-container.right-panel-active .login-sign-up-container {
+    transform: translateX(100%);
+    opacity: 1;
+    z-index: 5;
+    animation: loginShow 0.6s;
+}
+
+@keyframes loginShow {
+    0%, 49.99% {
+        opacity: 0;
+        z-index: 1;
+    }
+    50%, 100% {
+        opacity: 1;
+        z-index: 5;
+    }
+}
+
+/* ─── Overlay Panel ─── */
+#login-overlay .login-overlay-container {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 50%;
+    height: 100%;
+    overflow: hidden;
+    transition: transform 0.6s ease-in-out;
+    z-index: 100;
+}
+
+#login-overlay .login-container.right-panel-active .login-overlay-container {
+    transform: translateX(-100%);
+}
+
+#login-overlay .login-overlay {
+    background: var(--login-gradient);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: 0 0;
+    color: #0E0E0E;
+    position: relative;
+    left: -100%;
+    height: 100%;
+    width: 200%;
+    transform: translateX(0);
+    transition: transform 0.6s ease-in-out;
+}
+
+#login-overlay .login-container.right-panel-active .login-overlay {
+    transform: translateX(50%);
+}
+
+#login-overlay .login-overlay-panel {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 0 40px;
+    text-align: center;
+    top: 0;
+    height: 100%;
+    width: 50%;
+    transform: translateX(0);
+    transition: transform 0.6s ease-in-out;
+}
+
+#login-overlay .login-overlay-left {
+    transform: translateX(-20%);
+}
+
+#login-overlay .login-container.right-panel-active .login-overlay-left {
+    transform: translateX(0);
+}
+
+#login-overlay .login-overlay-right {
+    right: 0;
+    transform: translateX(0);
+}
+
+#login-overlay .login-container.right-panel-active .login-overlay-right {
+    transform: translateX(20%);
+}
+
+/* Overlay Text */
+#login-overlay .login-overlay h1 {
+    color: #0E0E0E;
+    font-size: 1.6rem;
+}
+
+#login-overlay .login-overlay .overlay-brand {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-weight: 600;
+    color: rgba(14, 14, 14, 0.5);
+    margin-bottom: 12px;
+}
+
+/* ─── Social Container ─── */
+#login-overlay .login-social-container {
+    margin: 20px 0;
+}
+
+#login-overlay .login-social-container a {
+    border: 1px solid var(--login-border);
+    border-radius: 50%;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 5px;
+    height: 40px;
+    width: 40px;
+    transition: all 0.3s;
+    color: var(--login-text-secondary);
+    text-decoration: none;
+    font-size: 16px;
+}
+
+#login-overlay .login-social-container a:hover {
+    background-color: var(--login-yellow);
+    color: #0E0E0E;
+    border-color: var(--login-yellow);
+    transform: translateY(-3px);
+}
+
+/* ─── Canvas Background ─── */
+#login-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background: #0E0E0E;
+}
+
+/* ─── Divider ─── */
+#login-overlay .login-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 280px;
+    margin: 8px 0;
+}
+
+#login-overlay .login-divider::before,
+#login-overlay .login-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--login-border);
+}
+
+#login-overlay .login-divider span {
+    font-size: 11px;
+    color: var(--login-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+/* ─── Logo in Form ─── */
+#login-overlay .login-logo-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    object-fit: contain;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+    #login-overlay .login-container {
+        width: 95%;
+        min-height: 480px;
+    }
+
+    #login-overlay .login-form {
+        padding: 0 24px;
+    }
+
+    #login-overlay .login-overlay-panel {
+        padding: 0 24px;
+    }
+
+    #login-overlay .login-container,
+    #login-overlay .login-sign-in-container,
+    #login-overlay .login-sign-up-container {
+        width: 100%;
+    }
+
+    #login-overlay .login-overlay-container {
+        display: none;
+    }
+
+    #login-overlay .login-sign-in-container,
+    #login-overlay .login-sign-up-container {
+        width: 100%;
+    }
+
+    #login-overlay .login-container.right-panel-active .login-sign-in-container {
+        transform: translateX(0);
+        opacity: 0;
+        z-index: 1;
+    }
+
+    #login-overlay .login-container.right-panel-active .login-sign-up-container {
+        transform: translateX(0);
+    }
+
+    #login-overlay .mobile-toggle {
+        display: block !important;
+        margin-top: 16px;
+        font-size: 13px;
+        color: var(--login-yellow);
+        cursor: pointer;
+        background: none;
+        border: none;
+        font-family: 'Poppins', sans-serif;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+    }
+}
+
+@media (min-width: 769px) {
+    #login-overlay .mobile-toggle {
+        display: none !important;
+    }
+}
