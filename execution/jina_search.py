@@ -105,21 +105,23 @@ def _extract_search_keywords(topic: str) -> dict:
         client = genai.Client(api_key=api_key)
 
         prompt = (
-            f'Extract search keywords and identify relevant web sources for this topic.\n'
+            f'Use Google Search to check for the latest news and updates on this topic, then extract optimized search keywords.\n'
             f'Topic: "{topic}"\n\n'
-            'For relevant_domains, think about:\n'
+            'Instructions:\n'
+            '1. First, use Google Search to find current news, trends, and recent developments\n'
+            '2. Then extract search-optimized keywords (2-5 words) focusing on core entities\n'
+            '3. Identify relevant domains where authoritative content exists\n\n'
+            'For relevant_domains, include:\n'
             '- Official website of the product/company/person mentioned\n'
             '- Documentation sites (docs.*, developer.*)\n'
             '- Major tech news outlets (techcrunch.com, theverge.com, arstechnica.com)\n'
             '- Community forums (reddit.com, news.ycombinator.com)\n'
             '- Social platforms where discussions happen (linkedin.com, x.com)\n'
             '- Industry-specific blogs and publications\n'
-            'Always return at least 5 domains, ideally 6-8.\n\n'
-            'Examples:\n'
-            '- "Claude Code updates 2026" => relevant_domains: ["anthropic.com", "docs.anthropic.com", "github.com", "techcrunch.com", "news.ycombinator.com", "reddit.com", "x.com"]\n'
-            '- "Tesla Q1 earnings" => relevant_domains: ["tesla.com", "ir.tesla.com", "bloomberg.com", "reuters.com", "cnbc.com", "seekingalpha.com", "linkedin.com"]\n'
-            '- "LinkedIn growth hacks" => relevant_domains: ["linkedin.com", "x.com", "reddit.com", "medium.com", "hubspot.com", "buffer.com"]'
+            'Always return at least 5 domains, ideally 6-8.'
         )
+
+        from google.genai import types
 
         response = client.models.generate_content(
             model="gemini-2.5-flash",
@@ -129,6 +131,7 @@ def _extract_search_keywords(topic: str) -> dict:
                 max_output_tokens=200,
                 response_mime_type="application/json",
                 response_schema=_KEYWORD_EXTRACTION_SCHEMA,
+                tools=[types.Tool(google_search=types.GoogleSearch())],
             ),
         )
 
